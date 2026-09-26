@@ -1,13 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Base Dark Backgrounds for High Contrast -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="dark_surface">#FF18181C</color>
-    <color name="dark_card">#FF24242A</color>
-    <color name="accessible_gold">#FFFFD700</color>
-    <color name="accessible_green">#FF00E676</color>
-    <color name="accessible_outline">#FF555560</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
+    <color name="dark_surface">#FF1A1A24</color>
+    <color name="dark_card">#FF262633</color>
+
+    <!-- High-Contrast Pastel Palette for Visually Impaired Users -->
+    <color name="pastel_yellow">#FFFFE066</color>
+    <color name="pastel_green">#FFB2F2BB</color>
+    <color name="pastel_blue">#FF99E9F2</color>
+    <color name="pastel_lavender">#FFE5DBFF</color>
+    <color name="pastel_peach">#FFFFD8A8</color>
+
+    <!-- Accessible Semantic Aliases -->
+    <color name="accessible_gold">#FFFFE066</color>
+    <color name="accessible_green">#FFB2F2BB</color>
+    <color name="accessible_outline">#FF9E9EB5</color>
+
+    <!-- Compatibility Aliases -->
+    <color name="purple_500">#FFE5DBFF</color>
+    <color name="purple_700">#FFCCB3FF</color>
+    <color name="teal_200">#FF99E9F2</color>
 </resources>
