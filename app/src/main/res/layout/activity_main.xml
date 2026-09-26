@@ -80,7 +80,7 @@
 
     </LinearLayout>
 
-    <!-- Bottom Sliding Card Overlay (Whole Card Slides Upwards) -->
+    <!-- Bottom Sliding Card Overlay (Collapsible & Expandable Up/Down) -->
     <LinearLayout
         android:id="@+id/control_sheet"
         android:layout_width="match_parent"
@@ -97,17 +97,23 @@
 
         <!-- Drag Handle Indicator -->
         <View
+            android:id="@+id/drag_handle"
             android:layout_width="40dp"
             android:layout_height="4dp"
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="12dp"
             android:background="@color/accessible_outline" />
 
+        <!-- Clickable Header to Slide Card Up and Down -->
         <LinearLayout
+            android:id="@+id/header_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/cd_header_toggle"
             android:layout_marginBottom="12dp">
 
             <TextView
@@ -120,15 +126,18 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/slide_hint"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/quick_controls_subtitle"
-                android:textColor="#FFB0B0C0"
-                android:textSize="12sp" />
+                android:text="@string/slide_hint_down"
+                android:textColor="@color/accessible_gold"
+                android:textSize="12sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Vertical Scrollable Container for Entire Card Content -->
+        <!-- Vertical Scrollable Container for Huge Accessible Buttons -->
         <ScrollView
+            android:id="@+id/scroll_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scrollbars="none"
@@ -146,15 +155,15 @@
                     android:id="@+id/audio_toggle"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
                     android:layout_width="match_parent"
-                    android:layout_height="64dp"
-                    android:layout_marginBottom="10dp"
+                    android:layout_height="80dp"
+                    android:layout_marginBottom="12dp"
                     android:text="@string/audio_alert_on"
                     android:textColor="@color/white"
-                    android:textSize="16sp"
+                    android:textSize="18sp"
                     android:textStyle="bold"
-                    app:cornerRadius="14dp"
+                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_volume_up"
-                    app:iconSize="24dp"
+                    app:iconSize="28dp"
                     app:iconTint="@color/white"
                     app:strokeColor="@color/accessible_gold"
                     app:strokeWidth="2dp" />
@@ -164,15 +173,15 @@
                     android:id="@+id/vibration_toggle"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
                     android:layout_width="match_parent"
-                    android:layout_height="64dp"
-                    android:layout_marginBottom="10dp"
+                    android:layout_height="80dp"
+                    android:layout_marginBottom="12dp"
                     android:text="@string/vibe_alert_on"
                     android:textColor="@color/white"
-                    android:textSize="16sp"
+                    android:textSize="18sp"
                     android:textStyle="bold"
-                    app:cornerRadius="14dp"
+                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_vibration"
-                    app:iconSize="24dp"
+                    app:iconSize="28dp"
                     app:iconTint="@color/white"
                     app:strokeColor="@color/accessible_gold"
                     app:strokeWidth="2dp" />
@@ -182,15 +191,15 @@
                     android:id="@+id/torch_toggle"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
                     android:layout_width="match_parent"
-                    android:layout_height="64dp"
-                    android:layout_marginBottom="10dp"
+                    android:layout_height="80dp"
+                    android:layout_marginBottom="12dp"
                     android:text="@string/torch_off"
                     android:textColor="@color/white"
-                    android:textSize="16sp"
+                    android:textSize="18sp"
                     android:textStyle="bold"
-                    app:cornerRadius="14dp"
+                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_flash_off"
-                    app:iconSize="24dp"
+                    app:iconSize="28dp"
                     app:iconTint="@color/white"
                     app:strokeColor="@color/accessible_outline"
                     app:strokeWidth="1dp" />
@@ -200,15 +209,15 @@
                     android:id="@+id/inference_toggle"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
                     android:layout_width="match_parent"
-                    android:layout_height="64dp"
+                    android:layout_height="80dp"
                     android:layout_marginBottom="4dp"
                     android:text="@string/inference_off"
                     android:textColor="@color/white"
-                    android:textSize="16sp"
+                    android:textSize="18sp"
                     android:textStyle="bold"
-                    app:cornerRadius="14dp"
+                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_ai"
-                    app:iconSize="24dp"
+                    app:iconSize="28dp"
                     app:iconTint="@color/white"
                     app:strokeColor="@color/accessible_outline"
                     app:strokeWidth="1dp" />

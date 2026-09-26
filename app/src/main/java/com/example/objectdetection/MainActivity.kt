@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.HapticFeedbackConstants
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -18,6 +19,7 @@ class MainActivity : AppCompatActivity() {
 
   private lateinit var binding: ActivityMainBinding
   private var cameraSource: CameraSource? = null
+  private var isControlsExpanded = true
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -26,6 +28,7 @@ class MainActivity : AppCompatActivity() {
     setContentView(binding.root)
 
     setupAlertToggles()
+    setupBottomCardToggle()
 
     if (allRuntimePermissionsGranted()) {
       createCameraSource()
@@ -74,6 +77,17 @@ class MainActivity : AppCompatActivity() {
       PreferenceUtils.setInferenceModeEnabled(this, newInferenceState)
       updateInferenceToggleButton()
       val cd = if (newInferenceState) getString(R.string.cd_inference_on) else getString(R.string.cd_inference_off)
+      view.announceForAccessibility(cd)
+    }
+  }
+
+  private fun setupBottomCardToggle() {
+    binding.headerLayout.setOnClickListener { view ->
+      view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+      isControlsExpanded = !isControlsExpanded
+      binding.scrollView.visibility = if (isControlsExpanded) View.VISIBLE else View.GONE
+      binding.slideHint.text = if (isControlsExpanded) getString(R.string.slide_hint_down) else getString(R.string.slide_hint_up)
+      val cd = if (isControlsExpanded) "Quick controls expanded" else "Quick controls collapsed"
       view.announceForAccessibility(cd)
     }
   }
