@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.HapticFeedbackConstants
-import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -15,13 +14,13 @@ import com.example.objectdetection.databinding.ActivityMainBinding
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 import org.opencv.android.OpenCVLoader
 import java.io.IOException
-import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
 
   private lateinit var binding: ActivityMainBinding
   private var cameraSource: CameraSource? = null
-  private var isControlsExpanded = true
+  private var isControlsExpanded = false
+  private lateinit var ttsHelper: TtsHelper
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -29,8 +28,10 @@ class MainActivity : AppCompatActivity() {
     binding = ActivityMainBinding.inflate(layoutInflater)
     setContentView(binding.root)
 
+    ttsHelper = TtsHelper(this)
     setupAlertToggles()
     setupBottomCardToggle()
+    collapseCard()
 
     if (allRuntimePermissionsGranted()) {
       createCameraSource()
@@ -50,8 +51,9 @@ class MainActivity : AppCompatActivity() {
       val newAudioState = !PreferenceUtils.isAudioEnabled(this)
       PreferenceUtils.setAudioEnabled(this, newAudioState)
       updateAudioToggleButton()
-      val cd = if (newAudioState) getString(R.string.cd_audio_on) else getString(R.string.cd_audio_off)
-      view.announceForAccessibility(cd)
+      val msg = if (newAudioState) "Audio alerts enabled" else "Audio alerts disabled"
+      ttsHelper.speak(msg, override = true)
+      view.announceForAccessibility(msg)
     }
 
     binding.vibrationToggle.setOnClickListener { view ->
@@ -59,8 +61,9 @@ class MainActivity : AppCompatActivity() {
       val newVibeState = !PreferenceUtils.isVibrationEnabled(this)
       PreferenceUtils.setVibrationEnabled(this, newVibeState)
       updateVibrationToggleButton()
-      val cd = if (newVibeState) getString(R.string.cd_vibe_on) else getString(R.string.cd_vibe_off)
-      view.announceForAccessibility(cd)
+      val msg = if (newVibeState) "Vibration alerts enabled" else "Vibration alerts disabled"
+      ttsHelper.speak(msg, override = true)
+      view.announceForAccessibility(msg)
     }
 
     binding.torchToggle.setOnClickListener { view ->
@@ -69,8 +72,9 @@ class MainActivity : AppCompatActivity() {
       PreferenceUtils.setTorchEnabled(this, newTorchState)
       cameraSource?.setTorch(newTorchState)
       updateTorchToggleButton()
-      val cd = if (newTorchState) getString(R.string.cd_torch_on) else getString(R.string.cd_torch_off)
-      view.announceForAccessibility(cd)
+      val msg = if (newTorchState) "Flashlight turned on" else "Flashlight turned off"
+      ttsHelper.speak(msg, override = true)
+      view.announceForAccessibility(msg)
     }
 
     binding.inferenceToggle.setOnClickListener { view ->
@@ -78,133 +82,106 @@ class MainActivity : AppCompatActivity() {
       val newInferenceState = !PreferenceUtils.isInferenceModeEnabled(this)
       PreferenceUtils.setInferenceModeEnabled(this, newInferenceState)
       updateInferenceToggleButton()
-      val cd = if (newInferenceState) getString(R.string.cd_inference_on) else getString(R.string.cd_inference_off)
-      view.announceForAccessibility(cd)
+      val msg = if (newInferenceState) "Gemini AI inference mode enabled" else "Gemini AI inference mode disabled"
+      ttsHelper.speak(msg, override = true)
+      view.announceForAccessibility(msg)
     }
   }
 
   private fun setupBottomCardToggle() {
-    var startY = 0f
-    val touchListener = View.OnTouchListener { view, event ->
-      when (event.action) {
-        MotionEvent.ACTION_DOWN -> {
-          startY = event.rawY
-          true
-        }
-        MotionEvent.ACTION_UP -> {
-          val deltaY = event.rawY - startY
-          val swipeThreshold = 35f
-          view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-          view.performClick()
-          if (abs(deltaY) > swipeThreshold) {
-            if (deltaY > 0) {
-              // Swiped down -> collapse fully down
-              collapseCard()
-            } else {
-              // Swiped up -> expand fully up
-              expandCard()
-            }
-          } else {
-            // Tap -> toggle fully up / fully down
-            if (isControlsExpanded) collapseCard() else expandCard()
-          }
-          true
-        }
-        else -> false
+    binding.controlToggleBtn.setOnClickListener { view ->
+      view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+      if (isControlsExpanded) {
+        collapseCard()
+        ttsHelper.speak("Quick controls collapsed", override = true)
+      } else {
+        expandCard()
+        ttsHelper.speak("Quick controls expanded", override = true)
       }
     }
-
-    binding.headerLayout.setOnTouchListener(touchListener)
-    binding.dragHandle.setOnTouchListener(touchListener)
+    updateControlToggleButton()
   }
 
   private fun expandCard() {
     isControlsExpanded = true
     binding.scrollView.visibility = View.VISIBLE
-    binding.controlSheet.animate().translationY(0f).setDuration(200).start()
-    binding.headerLayout.announceForAccessibility("Quick controls expanded")
+    updateControlToggleButton()
+    binding.controlToggleBtn.announceForAccessibility("Quick controls expanded")
   }
 
   private fun collapseCard() {
     isControlsExpanded = false
     binding.scrollView.visibility = View.GONE
-    binding.headerLayout.announceForAccessibility("Quick controls collapsed")
+    updateControlToggleButton()
+    binding.controlToggleBtn.announceForAccessibility("Quick controls collapsed")
+  }
+
+  private fun updateControlToggleButton() {
+    if (isControlsExpanded) {
+      binding.controlToggleArrow.setImageResource(R.drawable.ic_arrow_down)
+    } else {
+      binding.controlToggleArrow.setImageResource(R.drawable.ic_arrow_up)
+    }
   }
 
   private fun updateAudioToggleButton() {
     val isAudioOn = PreferenceUtils.isAudioEnabled(this)
-    binding.audioToggle.text = if (isAudioOn) getString(R.string.audio_alert_on) else getString(R.string.audio_alert_off)
     val iconRes = if (isAudioOn) R.drawable.ic_volume_up else R.drawable.ic_volume_off
-    binding.audioToggle.setIconResource(iconRes)
+    binding.audioIcon.setImageResource(iconRes)
 
     if (isAudioOn) {
-      binding.audioToggle.setStrokeColorResource(R.color.accessible_gold)
-      binding.audioToggle.strokeWidth = dpToPx(2)
-      binding.audioToggle.alpha = 1.0f
+      binding.audioToggle.backgroundTintList = ContextCompat.getColorStateList(this, R.color.pastel_yellow)
+      binding.audioIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.black)
     } else {
-      binding.audioToggle.setStrokeColorResource(R.color.accessible_outline)
-      binding.audioToggle.strokeWidth = dpToPx(1)
-      binding.audioToggle.alpha = 0.55f
+      binding.audioToggle.backgroundTintList = ContextCompat.getColorStateList(this, R.color.dark_card)
+      binding.audioIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.pastel_yellow)
     }
     binding.audioToggle.contentDescription = if (isAudioOn) getString(R.string.cd_audio_on) else getString(R.string.cd_audio_off)
   }
 
   private fun updateVibrationToggleButton() {
     val isVibeOn = PreferenceUtils.isVibrationEnabled(this)
-    binding.vibrationToggle.text = if (isVibeOn) getString(R.string.vibe_alert_on) else getString(R.string.vibe_alert_off)
-    val iconRes = if (isVibeOn) R.drawable.ic_vibration else R.drawable.ic_vibration_off
-    binding.vibrationToggle.setIconResource(iconRes)
+    val iconRes = if (isVibeOn) R.drawable.ic_vibration else R.drawable.vibration_off
+    binding.vibrationIcon.setImageResource(iconRes)
 
     if (isVibeOn) {
-      binding.vibrationToggle.setStrokeColorResource(R.color.accessible_gold)
-      binding.vibrationToggle.strokeWidth = dpToPx(2)
-      binding.vibrationToggle.alpha = 1.0f
+      binding.vibrationToggle.backgroundTintList = ContextCompat.getColorStateList(this, R.color.pastel_green)
+      binding.vibrationIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.black)
     } else {
-      binding.vibrationToggle.setStrokeColorResource(R.color.accessible_outline)
-      binding.vibrationToggle.strokeWidth = dpToPx(1)
-      binding.vibrationToggle.alpha = 0.55f
+      binding.vibrationToggle.backgroundTintList = ContextCompat.getColorStateList(this, R.color.dark_card)
+      binding.vibrationIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.pastel_green)
     }
     binding.vibrationToggle.contentDescription = if (isVibeOn) getString(R.string.cd_vibe_on) else getString(R.string.cd_vibe_off)
   }
 
   private fun updateTorchToggleButton() {
     val isTorchOn = PreferenceUtils.isTorchEnabled(this)
-    binding.torchToggle.text = if (isTorchOn) getString(R.string.torch_on) else getString(R.string.torch_off)
     val iconRes = if (isTorchOn) R.drawable.ic_flash_on else R.drawable.ic_flash_off
-    binding.torchToggle.setIconResource(iconRes)
+    binding.torchIcon.setImageResource(iconRes)
 
     if (isTorchOn) {
-      binding.torchToggle.setStrokeColorResource(R.color.accessible_gold)
-      binding.torchToggle.strokeWidth = dpToPx(2)
-      binding.torchToggle.alpha = 1.0f
+      binding.torchToggle.backgroundTintList = ContextCompat.getColorStateList(this, R.color.pastel_peach)
+      binding.torchIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.black)
     } else {
-      binding.torchToggle.setStrokeColorResource(R.color.accessible_outline)
-      binding.torchToggle.strokeWidth = dpToPx(1)
-      binding.torchToggle.alpha = 0.55f
+      binding.torchToggle.backgroundTintList = ContextCompat.getColorStateList(this, R.color.dark_card)
+      binding.torchIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.pastel_peach)
     }
     binding.torchToggle.contentDescription = if (isTorchOn) getString(R.string.cd_torch_on) else getString(R.string.cd_torch_off)
   }
 
   private fun updateInferenceToggleButton() {
     val isInferenceOn = PreferenceUtils.isInferenceModeEnabled(this)
-    binding.inferenceToggle.text = if (isInferenceOn) getString(R.string.inference_on) else getString(R.string.inference_off)
     val iconRes = R.drawable.ic_ai
-    binding.inferenceToggle.setIconResource(iconRes)
+    binding.inferenceIcon.setImageResource(iconRes)
 
     if (isInferenceOn) {
-      binding.inferenceToggle.setStrokeColorResource(R.color.accessible_gold)
-      binding.inferenceToggle.strokeWidth = dpToPx(2)
-      binding.inferenceToggle.alpha = 1.0f
+      binding.inferenceToggle.backgroundTintList = ContextCompat.getColorStateList(this, R.color.pastel_lavender)
+      binding.inferenceIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.black)
     } else {
-      binding.inferenceToggle.setStrokeColorResource(R.color.accessible_outline)
-      binding.inferenceToggle.strokeWidth = dpToPx(1)
-      binding.inferenceToggle.alpha = 0.55f
+      binding.inferenceToggle.backgroundTintList = ContextCompat.getColorStateList(this, R.color.dark_card)
+      binding.inferenceIcon.imageTintList = ContextCompat.getColorStateList(this, R.color.pastel_lavender)
     }
     binding.inferenceToggle.contentDescription = if (isInferenceOn) getString(R.string.cd_inference_on) else getString(R.string.cd_inference_off)
-  }
-
-  private fun dpToPx(dp: Int): Int {
-    return (dp * resources.displayMetrics.density).toInt()
   }
 
   private fun initOpenCV() {
@@ -267,6 +244,7 @@ class MainActivity : AppCompatActivity() {
 
   override fun onDestroy() {
     super.onDestroy()
+    ttsHelper.release()
     cameraSource?.release()
     cameraSource = null
   }

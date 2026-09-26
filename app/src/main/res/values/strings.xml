@@ -27,7 +27,10 @@
     <string name="cd_inference_on">Gemini AI inference mode enabled. Tap to disable.</string>
     <string name="cd_inference_off">Gemini AI inference mode disabled. Tap to enable.</string>
 
-    <string name="cd_header_toggle">Quick controls header. Double tap to slide up or down.</string>
-    <string name="slide_hint_down">Tap to Slide ▼</string>
-    <string name="slide_hint_up">Tap to Slide ▲</string>
+    <string name="cd_header_toggle">Quick controls toggle button. Double tap to expand or collapse quick controls.</string>
+    <string name="quick_controls_label">QUICK CONTROLS</string>
+    <string name="arrow_up">▲</string>
+    <string name="arrow_down">▼</string>
+    <string name="quick_controls_collapsed">QUICK CONTROLS   ▲</string>
+    <string name="quick_controls_expanded">QUICK CONTROLS   ▼</string>
 </resources>
