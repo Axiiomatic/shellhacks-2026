@@ -1,11 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Object Detection</string>
-    <string name="permission_camera_rationale">Camera permission is required for real-time object detection.</string>
-    <string name="switch_to_front_camera">Front Cam</string>
-    <string name="switch_to_back_camera">Back Cam</string>
+    <string name="app_name">Walkthrough</string>
+    <string name="app_tagline">Hazard &amp; Navigation Assistant</string>
+    <string name="status_active">ACTIVE • Monitoring</string>
+    <string name="permission_camera_rationale">Camera permission is required for Walkthrough real-time hazard navigation.</string>
+
+    <string name="quick_controls_title">Quick Controls</string>
+    <string name="quick_controls_subtitle">Tap any control to toggle feedback mode</string>
+
     <string name="audio_alert_on">Audio: ON</string>
     <string name="audio_alert_off">Audio: OFF</string>
     <string name="vibe_alert_on">Vibe: ON</string>
     <string name="vibe_alert_off">Vibe: OFF</string>
+    <string name="torch_on">Torch: ON</string>
+    <string name="torch_off">Torch: OFF</string>
+    <string name="camera_back">Back Cam</string>
+    <string name="camera_front">Front Cam</string>
+
+    <string name="cd_camera_preview">Live camera feed for object detection and hazard monitoring.</string>
+    <string name="cd_audio_on">Audio Alerts enabled. Tap to disable.</string>
+    <string name="cd_audio_off">Audio Alerts disabled. Tap to enable.</string>
+    <string name="cd_vibe_on">Vibration Alerts enabled. Tap to disable.</string>
+    <string name="cd_vibe_off">Vibration Alerts disabled. Tap to enable.</string>
+    <string name="cd_torch_on">Flashlight turned on. Tap to turn off.</string>
+    <string name="cd_torch_off">Flashlight turned off. Tap to turn on.</string>
+    <string name="cd_camera_back">Camera set to back camera. Tap to switch to front camera.</string>
+    <string name="cd_camera_front">Camera set to front camera. Tap to switch to back camera.</string>
 </resources>

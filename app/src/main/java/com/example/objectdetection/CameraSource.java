@@ -121,6 +121,28 @@ public class CameraSource {
     bytesToByteBuffer.clear();
   }
 
+  private boolean isTorchOn = false;
+
+  public synchronized void setTorch(boolean enabled) {
+    isTorchOn = enabled;
+    if (camera != null) {
+      try {
+        Parameters p = camera.getParameters();
+        List<String> modes = p.getSupportedFlashModes();
+        if (modes != null) {
+          if (enabled && modes.contains(Parameters.FLASH_MODE_TORCH)) {
+            p.setFlashMode(Parameters.FLASH_MODE_TORCH);
+          } else if (modes.contains(Parameters.FLASH_MODE_OFF)) {
+            p.setFlashMode(Parameters.FLASH_MODE_OFF);
+          }
+          camera.setParameters(p);
+        }
+      } catch (Exception e) {
+        Log.e(TAG, "Failed to set torch mode", e);
+      }
+    }
+  }
+
   public void release() {
     stop();
   }
@@ -187,6 +209,13 @@ public class CameraSource {
     if (REQUESTED_AUTO_FOCUS) {
       if (parameters.getSupportedFocusModes().contains(Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
         parameters.setFocusMode(Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+      }
+    }
+
+    if (isTorchOn) {
+      List<String> supportedFlashModes = parameters.getSupportedFlashModes();
+      if (supportedFlashModes != null && supportedFlashModes.contains(Parameters.FLASH_MODE_TORCH)) {
+        parameters.setFlashMode(Parameters.FLASH_MODE_TORCH);
       }
     }
 

@@ -2,6 +2,11 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="dark_surface">#FF18181C</color>
+    <color name="dark_card">#FF24242A</color>
+    <color name="accessible_gold">#FFFFD700</color>
+    <color name="accessible_green">#FF00E676</color>
+    <color name="accessible_outline">#FF555560</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
     <color name="teal_200">#FF03DAC5</color>

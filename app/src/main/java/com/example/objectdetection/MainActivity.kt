@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.view.HapticFeedbackConstants
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -26,25 +27,7 @@ class MainActivity : AppCompatActivity() {
     setContentView(binding.root)
 
     setupAlertToggles()
-
-    binding.facingSwitch.setOnClickListener {
-      isFrontFacing = !isFrontFacing
-      val newFacing = if (isFrontFacing) {
-        CameraSource.CAMERA_FACING_FRONT
-      } else {
-        CameraSource.CAMERA_FACING_BACK
-      }
-
-      binding.facingSwitch.text = if (isFrontFacing) {
-        getString(R.string.switch_to_back_camera)
-      } else {
-        getString(R.string.switch_to_front_camera)
-      }
-
-      cameraSource?.setFacing(newFacing)
-      binding.previewView.stop()
-      startCameraSource()
-    }
+    setupCameraControls()
 
     if (allRuntimePermissionsGranted()) {
       createCameraSource()
@@ -56,17 +39,56 @@ class MainActivity : AppCompatActivity() {
   private fun setupAlertToggles() {
     updateAudioToggleButton()
     updateVibrationToggleButton()
+    updateTorchToggleButton()
 
-    binding.audioToggle.setOnClickListener {
+    binding.audioToggle.setOnClickListener { view ->
+      view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
       val newAudioState = !PreferenceUtils.isAudioEnabled(this)
       PreferenceUtils.setAudioEnabled(this, newAudioState)
       updateAudioToggleButton()
+      val cd = if (newAudioState) getString(R.string.cd_audio_on) else getString(R.string.cd_audio_off)
+      view.announceForAccessibility(cd)
     }
 
-    binding.vibrationToggle.setOnClickListener {
+    binding.vibrationToggle.setOnClickListener { view ->
+      view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
       val newVibeState = !PreferenceUtils.isVibrationEnabled(this)
       PreferenceUtils.setVibrationEnabled(this, newVibeState)
       updateVibrationToggleButton()
+      val cd = if (newVibeState) getString(R.string.cd_vibe_on) else getString(R.string.cd_vibe_off)
+      view.announceForAccessibility(cd)
+    }
+
+    binding.torchToggle.setOnClickListener { view ->
+      view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+      val newTorchState = !PreferenceUtils.isTorchEnabled(this)
+      PreferenceUtils.setTorchEnabled(this, newTorchState)
+      cameraSource?.setTorch(newTorchState)
+      updateTorchToggleButton()
+      val cd = if (newTorchState) getString(R.string.cd_torch_on) else getString(R.string.cd_torch_off)
+      view.announceForAccessibility(cd)
+    }
+  }
+
+  private fun setupCameraControls() {
+    updateCameraFacingButton()
+
+    binding.facingSwitch.setOnClickListener { view ->
+      view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+      isFrontFacing = !isFrontFacing
+      val newFacing = if (isFrontFacing) {
+        CameraSource.CAMERA_FACING_FRONT
+      } else {
+        CameraSource.CAMERA_FACING_BACK
+      }
+
+      cameraSource?.setFacing(newFacing)
+      binding.previewView.stop()
+      startCameraSource()
+      updateCameraFacingButton()
+
+      val cd = if (isFrontFacing) getString(R.string.cd_camera_front) else getString(R.string.cd_camera_back)
+      view.announceForAccessibility(cd)
     }
   }
 
@@ -75,7 +97,17 @@ class MainActivity : AppCompatActivity() {
     binding.audioToggle.text = if (isAudioOn) getString(R.string.audio_alert_on) else getString(R.string.audio_alert_off)
     val iconRes = if (isAudioOn) R.drawable.ic_volume_up else R.drawable.ic_volume_off
     binding.audioToggle.setIconResource(iconRes)
-    binding.audioToggle.alpha = if (isAudioOn) 1.0f else 0.5f
+
+    if (isAudioOn) {
+      binding.audioToggle.setStrokeColorResource(R.color.accessible_gold)
+      binding.audioToggle.strokeWidth = dpToPx(2)
+      binding.audioToggle.alpha = 1.0f
+    } else {
+      binding.audioToggle.setStrokeColorResource(R.color.accessible_outline)
+      binding.audioToggle.strokeWidth = dpToPx(1)
+      binding.audioToggle.alpha = 0.55f
+    }
+    binding.audioToggle.contentDescription = if (isAudioOn) getString(R.string.cd_audio_on) else getString(R.string.cd_audio_off)
   }
 
   private fun updateVibrationToggleButton() {
@@ -83,7 +115,44 @@ class MainActivity : AppCompatActivity() {
     binding.vibrationToggle.text = if (isVibeOn) getString(R.string.vibe_alert_on) else getString(R.string.vibe_alert_off)
     val iconRes = if (isVibeOn) R.drawable.ic_vibration else R.drawable.ic_vibration_off
     binding.vibrationToggle.setIconResource(iconRes)
-    binding.vibrationToggle.alpha = if (isVibeOn) 1.0f else 0.5f
+
+    if (isVibeOn) {
+      binding.vibrationToggle.setStrokeColorResource(R.color.accessible_gold)
+      binding.vibrationToggle.strokeWidth = dpToPx(2)
+      binding.vibrationToggle.alpha = 1.0f
+    } else {
+      binding.vibrationToggle.setStrokeColorResource(R.color.accessible_outline)
+      binding.vibrationToggle.strokeWidth = dpToPx(1)
+      binding.vibrationToggle.alpha = 0.55f
+    }
+    binding.vibrationToggle.contentDescription = if (isVibeOn) getString(R.string.cd_vibe_on) else getString(R.string.cd_vibe_off)
+  }
+
+  private fun updateTorchToggleButton() {
+    val isTorchOn = PreferenceUtils.isTorchEnabled(this)
+    binding.torchToggle.text = if (isTorchOn) getString(R.string.torch_on) else getString(R.string.torch_off)
+    val iconRes = if (isTorchOn) R.drawable.ic_flash_on else R.drawable.ic_flash_off
+    binding.torchToggle.setIconResource(iconRes)
+
+    if (isTorchOn) {
+      binding.torchToggle.setStrokeColorResource(R.color.accessible_gold)
+      binding.torchToggle.strokeWidth = dpToPx(2)
+      binding.torchToggle.alpha = 1.0f
+    } else {
+      binding.torchToggle.setStrokeColorResource(R.color.accessible_outline)
+      binding.torchToggle.strokeWidth = dpToPx(1)
+      binding.torchToggle.alpha = 0.55f
+    }
+    binding.torchToggle.contentDescription = if (isTorchOn) getString(R.string.cd_torch_on) else getString(R.string.cd_torch_off)
+  }
+
+  private fun updateCameraFacingButton() {
+    binding.facingSwitch.text = if (isFrontFacing) getString(R.string.camera_front) else getString(R.string.camera_back)
+    binding.facingSwitch.contentDescription = if (isFrontFacing) getString(R.string.cd_camera_front) else getString(R.string.cd_camera_back)
+  }
+
+  private fun dpToPx(dp: Int): Int {
+    return (dp * resources.displayMetrics.density).toInt()
   }
 
   private fun initOpenCV() {
@@ -122,6 +191,7 @@ class MainActivity : AppCompatActivity() {
     if (cameraSource != null) {
       try {
         binding.previewView.start(cameraSource, binding.graphicOverlay)
+        cameraSource?.setTorch(PreferenceUtils.isTorchEnabled(this))
       } catch (e: IOException) {
         Log.e(TAG, "Unable to start camera source.", e)
         cameraSource?.release()
