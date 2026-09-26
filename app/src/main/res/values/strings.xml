@@ -8,14 +8,14 @@
     <string name="quick_controls_title">Quick Controls</string>
     <string name="quick_controls_subtitle">Tap any control to toggle feedback mode</string>
 
-    <string name="audio_alert_on">Audio: ON</string>
-    <string name="audio_alert_off">Audio: OFF</string>
-    <string name="vibe_alert_on">Vibe: ON</string>
-    <string name="vibe_alert_off">Vibe: OFF</string>
-    <string name="torch_on">Torch: ON</string>
-    <string name="torch_off">Torch: OFF</string>
-    <string name="camera_back">Back Cam</string>
-    <string name="camera_front">Front Cam</string>
+    <string name="audio_alert_on">AUDIO: ON</string>
+    <string name="audio_alert_off">AUDIO: OFF</string>
+    <string name="vibe_alert_on">VIBRATION: ON</string>
+    <string name="vibe_alert_off">VIBRATION: OFF</string>
+    <string name="torch_on">FLASHLIGHT: ON</string>
+    <string name="torch_off">FLASHLIGHT: OFF</string>
+    <string name="inference_on">INFERENCE: ON</string>
+    <string name="inference_off">INFERENCE: OFF</string>
 
     <string name="cd_camera_preview">Live camera feed for object detection and hazard monitoring.</string>
     <string name="cd_audio_on">Audio Alerts enabled. Tap to disable.</string>
@@ -24,11 +24,6 @@
     <string name="cd_vibe_off">Vibration Alerts disabled. Tap to enable.</string>
     <string name="cd_torch_on">Flashlight turned on. Tap to turn off.</string>
     <string name="cd_torch_off">Flashlight turned off. Tap to turn on.</string>
-    <string name="cd_camera_back">Camera set to back camera. Tap to switch to front camera.</string>
-    <string name="cd_camera_front">Camera set to front camera. Tap to switch to back camera.</string>
-
-    <string name="inference_on">Gemini AI: ON</string>
-    <string name="inference_off">Gemini AI: OFF</string>
     <string name="cd_inference_on">Gemini AI inference mode enabled. Tap to disable.</string>
     <string name="cd_inference_off">Gemini AI inference mode disabled. Tap to enable.</string>
 </resources>
