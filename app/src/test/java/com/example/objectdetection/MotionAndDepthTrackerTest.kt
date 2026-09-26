@@ -99,4 +99,80 @@ class MotionTrackerTest {
     assertTrue("Sustained expansion should trigger collision alert", lastRes!!.isRapidApproaching)
     assertTrue("Motion label should indicate BUMP WARNING", lastRes.motionLabel.contains("BUMP WARNING"))
   }
+
+  @Test
+  fun testSideObjectIgnored() {
+    val tracker = MotionTracker()
+
+    // Object located far to the right side (normCenterX ~ 0.90) expanding rapidly
+    var lastRes: ObjectTrackInfo? = null
+    var size = 100
+    for (step in 1..6) {
+      Thread.sleep(50)
+      size += 50
+      val halfSize = size / 2
+      val sideObj = mock(DetectedObject::class.java)
+      // Centered at X = 650 (far right on 720 wide screen)
+      `when`(sideObj.boundingBox).thenReturn(createRect(650 - halfSize, 640 - halfSize, minOf(720, 650 + halfSize), 640 + halfSize))
+      `when`(sideObj.trackingId).thenReturn(404)
+      val res = tracker.processFrame(listOf(sideObj), 720, 1280)
+      lastRes = res[sideObj]
+    }
+
+    assertNotNull(lastRes)
+    assertFalse("Expanding side object should NOT trigger bump warning", lastRes!!.isRapidApproaching)
+  }
+
+  @Test
+  fun testDistantObjectIgnored() {
+    val tracker = MotionTracker()
+
+    // Centered object expanding while still small/distant (screen fraction < 0.34)
+    var lastRes: ObjectTrackInfo? = null
+    var size = 80
+    for (step in 1..6) {
+      Thread.sleep(50)
+      size += 30 // Grows to 230px -> diagonal 325px / 1468px ~ 0.22 < 0.34
+      val halfSize = size / 2
+      val distantObj = mock(DetectedObject::class.java)
+      `when`(distantObj.boundingBox).thenReturn(createRect(360 - halfSize, 640 - halfSize, 360 + halfSize, 640 + halfSize))
+      `when`(distantObj.trackingId).thenReturn(505)
+      val res = tracker.processFrame(listOf(distantObj), 720, 1280)
+      lastRes = res[distantObj]
+    }
+
+    assertNotNull(lastRes)
+    assertFalse("Distant expanding object should NOT trigger bump warning until close", lastRes!!.isRapidApproaching)
+  }
+
+  @Test
+  fun testAngledApproachToDoorOrWall() {
+    val tracker = MotionTracker()
+
+    // Approaching a door or wall at an angle (expanding rapidly while shifting laterally)
+    var lastRes: ObjectTrackInfo? = null
+    var width = 280
+    var height = 500
+    var centerX = 380
+
+    for (step in 1..8) {
+      Thread.sleep(50)
+      width += 30  // Grows to 520px (520/720 = 0.72 >= 0.45 width fraction)
+      height += 45 // Grows to 860px (860/1280 = 0.67 >= 0.50 height fraction)
+      centerX += 8 // Shifts laterally as camera approaches at an angle
+
+      val halfW = width / 2
+      val halfH = height / 2
+      val doorObj = mock(DetectedObject::class.java)
+      `when`(doorObj.boundingBox).thenReturn(createRect(centerX - halfW, 640 - halfH, centerX + halfW, 640 + halfH))
+      `when`(doorObj.trackingId).thenReturn(606)
+
+      val res = tracker.processFrame(listOf(doorObj), 720, 1280)
+      lastRes = res[doorObj]
+    }
+
+    assertNotNull(lastRes)
+    assertTrue("Angled approach to door/wall should trigger bump warning", lastRes!!.isRapidApproaching)
+    assertTrue("Motion label should indicate BUMP WARNING", lastRes.motionLabel.contains("BUMP WARNING"))
+  }
 }

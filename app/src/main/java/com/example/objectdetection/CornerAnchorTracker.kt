@@ -2,7 +2,6 @@ package com.example.objectdetection
 
 import android.graphics.Rect
 import android.util.Log
-import org.opencv.core.CvType
 import org.opencv.core.Mat
 import org.opencv.core.MatOfByte
 import org.opencv.core.MatOfFloat

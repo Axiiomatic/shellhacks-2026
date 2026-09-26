@@ -196,12 +196,41 @@ class MotionTracker {
         state.smoothedRelativeSpeed = smoothedRelativeSpeed
         state.smoothedScaleGrowth = smoothedScaleGrowth
 
-        // Sustained approach accumulator:
-        // Object must be expanding rapidly (>= 30%/s), occupy a major portion of the frame (>= 22% frame diagonal),
-        // and not be a fast lateral pan across the screen.
-        val isExpandingRapidly = smoothedScaleGrowth >= RAPID_APPROACH_THRESHOLD &&
-            screenFraction >= MIN_SCREEN_FRACTION_FOR_COLLISION &&
-            smoothedRelativeSpeed < MAX_LATERAL_PAN_SPEED
+        // 1. Scale Expansion Rate & Time-To-Collision (TTC)
+        val isRapidScaleGrowth = smoothedScaleGrowth >= RAPID_APPROACH_THRESHOLD
+        val estimatedTtc = if (smoothedScaleGrowth > 0.05f) 1.0f / smoothedScaleGrowth else Float.MAX_VALUE
+        val isImminentTtc = estimatedTtc <= MAX_TTC_SECONDS
+
+        // 2. Close Proximity Requirement
+        // Object must occupy a significant portion of the frame (close to camera):
+        // Screen fraction >= 38% OR Box Width >= 45% of frame width OR Box Height >= 50% of frame height
+        val normBoxWidth = boxWidth / safeWidth
+        val normBoxHeight = boxHeight / safeHeight
+        val isCloseProximity = screenFraction >= MIN_SCREEN_FRACTION_FOR_COLLISION ||
+            normBoxWidth >= MIN_BOX_WIDTH_FRACTION ||
+            normBoxHeight >= MIN_BOX_HEIGHT_FRACTION
+
+        // 3. Directional Collision Path (supports head-on AND angled approaches)
+        // Object must extend into the forward path corridor [0.20, 0.80]
+        val normLeft = box.left / safeWidth
+        val normRight = box.right / safeWidth
+        val isInCollisionPath = normLeft <= PATH_CORRIDOR_X_MAX && normRight >= PATH_CORRIDOR_X_MIN
+
+        // 4. Expansion-to-Motion Ratio
+        // Permits angled approaches (where both expansion and lateral movement occur),
+        // but filters out pure camera sweeps / lateral pans across the room (where lateral speed is high, scale expansion is tiny)
+        val expansionToMotionRatio = if (smoothedRelativeSpeed > 0.05f) {
+          smoothedScaleGrowth / smoothedRelativeSpeed
+        } else {
+          10.0f
+        }
+        val isApproachMotion = expansionToMotionRatio >= MIN_EXPANSION_TO_MOTION_RATIO || smoothedRelativeSpeed < 0.35f
+
+        val isExpandingRapidly = isRapidScaleGrowth &&
+            isImminentTtc &&
+            isCloseProximity &&
+            isInCollisionPath &&
+            isApproachMotion
 
         if (isExpandingRapidly) {
           state.consecutiveApproachCount = minOf(15, state.consecutiveApproachCount + 1)
@@ -331,9 +360,14 @@ class MotionTracker {
 
   companion object {
     private const val STALE_THRESHOLD_MS = 1200L
-    const val RAPID_APPROACH_THRESHOLD = 0.30f // 30%/s scale growth rate
-    const val MIN_SCREEN_FRACTION_FOR_COLLISION = 0.22f // Object must occupy >= 22% of frame diagonal
-    const val MAX_LATERAL_PAN_SPEED = 0.70f // Filters out fast lateral camera sweeps
+    const val RAPID_APPROACH_THRESHOLD = 0.42f // 42%/s scale growth rate required for imminent bump
+    const val MAX_TTC_SECONDS = 2.0f // Estimated Time-To-Collision must be <= 2.0 seconds
+    const val MIN_SCREEN_FRACTION_FOR_COLLISION = 0.38f // Object occupies >= 38% frame diagonal
+    const val MIN_BOX_WIDTH_FRACTION = 0.45f // Or object width occupies >= 45% frame width
+    const val MIN_BOX_HEIGHT_FRACTION = 0.50f // Or object height occupies >= 50% frame height
+    const val PATH_CORRIDOR_X_MIN = 0.20f // Collision path corridor starts at 20% width
+    const val PATH_CORRIDOR_X_MAX = 0.80f // Collision path corridor ends at 80% width
+    const val MIN_EXPANSION_TO_MOTION_RATIO = 0.35f // Minimum expansion-to-lateral-speed ratio
     const val SUSTAINED_FRAMES_REQUIRED = 5 // Requires at least 5 consecutive expanding frames
   }
 }
