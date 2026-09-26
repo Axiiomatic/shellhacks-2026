@@ -1,5 +1,6 @@
 package com.example.objectdetection
 
+import android.content.Context
 import android.graphics.Rect
 import com.google.mlkit.vision.objects.DetectedObject
 import org.junit.Assert.assertEquals
@@ -174,5 +175,25 @@ class MotionTrackerTest {
     assertNotNull(lastRes)
     assertTrue("Angled approach to door/wall should trigger bump warning", lastRes!!.isRapidApproaching)
     assertTrue("Motion label should indicate BUMP WARNING", lastRes.motionLabel.contains("BUMP WARNING"))
+  }
+
+  @Test
+  fun testDirectionalStereoAudioVolume() {
+    val helper = AudioAlertHelper(mock(Context::class.java))
+
+    // Left side hazard (normX = 0.15) -> Left ear full volume, Right ear reduced
+    val (leftVol, rightVol) = helper.calculateStereoVolume(0.15f)
+    assertEquals(1.0f, leftVol, 0.001f)
+    assertTrue("Right volume should be reduced for left hazard", rightVol < 0.20f)
+
+    // Center hazard (normX = 0.50) -> Both ears full volume
+    val (centerLeft, centerRight) = helper.calculateStereoVolume(0.50f)
+    assertEquals(1.0f, centerLeft, 0.001f)
+    assertEquals(1.0f, centerRight, 0.001f)
+
+    // Right side hazard (normX = 0.85) -> Right ear full volume, Left ear reduced
+    val (rightLeftVol, rightRightVol) = helper.calculateStereoVolume(0.85f)
+    assertEquals(1.0f, rightRightVol, 0.001f)
+    assertTrue("Left volume should be reduced for right hazard", rightLeftVol < 0.20f)
   }
 }

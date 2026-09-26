@@ -62,11 +62,23 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
       )
 
       var rapidApproachDetected = false
+      var hazardScreenNormX = 0.5f
+      var maxHazardArea = -1.0f
+
+      val safeWidth = maxOf(graphicOverlay.imageWidth, 1).toFloat()
 
       for (result in results) {
         val trackInfo = trackInfoMap[result]
         if (trackInfo?.isRapidApproaching == true) {
           rapidApproachDetected = true
+          val box = result.boundingBox
+          val boxArea = (box.right - box.left) * (box.bottom - box.top).toFloat()
+          if (boxArea > maxHazardArea) {
+            maxHazardArea = boxArea
+            val centerX = (box.left + box.right) / 2.0f
+            val rawNormX = centerX / safeWidth
+            hazardScreenNormX = if (graphicOverlay.isImageFlipped) 1.0f - rawNormX else rawNormX
+          }
         }
         graphicOverlay.add(ObjectGraphic(graphicOverlay, result, trackInfo))
       }
@@ -79,7 +91,7 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
             vibratorHelper.vibrateRapidApproach()
           }
           if (PreferenceUtils.isAudioEnabled(context)) {
-            audioAlertHelper.playAlertSound()
+            audioAlertHelper.playAlertSound(hazardScreenNormX)
           }
         }
       }

@@ -115,6 +115,10 @@ public class GraphicOverlay extends View {
     return imageHeight;
   }
 
+  public boolean isImageFlipped() {
+    return isImageFlipped;
+  }
+
   private void updateTransformationIfNeeded() {
     if (!needUpdateTransformation || imageWidth <= 0 || imageHeight <= 0) {
       return;

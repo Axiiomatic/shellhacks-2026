@@ -6,7 +6,7 @@ import android.media.SoundPool
 import android.util.Log
 
 /**
- * Helper class for triggering audio sound alerts when an object is rapidly approaching.
+ * Helper class for triggering audio sound alerts with directional stereo panning when an object is rapidly approaching.
  */
 class AudioAlertHelper(context: Context) {
 
@@ -40,18 +40,47 @@ class AudioAlertHelper(context: Context) {
   }
 
   /**
-   * Plays the alert sound effect if cooldown has elapsed and resource is loaded.
+   * Plays the alert sound effect with directional stereo panning based on screen position normX [0.0..1.0].
    */
-  fun playAlertSound() {
+  fun playAlertSound(normX: Float = 0.5f) {
     val currentTime = System.currentTimeMillis()
     if (currentTime - lastPlayTimeMs < SOUND_COOLDOWN_MS) return
     if (!isLoaded || soundId == 0) return
 
     lastPlayTimeMs = currentTime
+
+    val (leftVol, rightVol) = calculateStereoVolume(normX)
+
     try {
-      soundPool?.play(soundId, 1.0f, 1.0f, 1, 0, 1.0f)
+      soundPool?.play(soundId, leftVol, rightVol, 1, 0, 1.0f)
     } catch (e: Exception) {
       Log.e(TAG, "Failed to play alert sound", e)
+    }
+  }
+
+  /**
+   * Calculates stereo volume (leftVolume, rightVolume) for directional audio panning based on screen position.
+   * - Left side (normX < 0.38): Left ear full volume, right ear muted/reduced.
+   * - Right side (normX > 0.62): Right ear full volume, left ear muted/reduced.
+   * - Center (0.38 <= normX <= 0.62): Both ears full volume.
+   */
+  fun calculateStereoVolume(normX: Float): Pair<Float, Float> {
+    val clampedX = normX.coerceIn(0.0f, 1.0f)
+    return when {
+      clampedX < 0.38f -> {
+        // Left ear full volume, right ear reduced (directional pan left)
+        val rightVol = (clampedX / 0.38f) * 0.10f
+        Pair(1.0f, rightVol)
+      }
+      clampedX > 0.62f -> {
+        // Right ear full volume, left ear reduced (directional pan right)
+        val leftVol = ((1.0f - clampedX) / 0.38f) * 0.10f
+        Pair(leftVol, 1.0f)
+      }
+      else -> {
+        // Center: Both ears full volume
+        Pair(1.0f, 1.0f)
+      }
     }
   }
 
