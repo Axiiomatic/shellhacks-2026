@@ -8,6 +8,9 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.view.GestureDetector
 import android.view.HapticFeedbackConstants
@@ -72,6 +75,7 @@ class MainActivity : AppCompatActivity() {
     setContentView(binding.root)
 
     ttsHelper = TtsHelper(this)
+    setupAppTitle()
     setupAlertToggles()
     setupBottomCardToggle()
     collapseCard()
@@ -308,6 +312,32 @@ class MainActivity : AppCompatActivity() {
         cameraSource = null
       }
     }
+  }
+
+  private fun setupAppTitle() {
+    val titleText = getString(R.string.app_name) // "WalkThrough"
+    val spannable = SpannableString(titleText)
+    val walkColor = ContextCompat.getColor(this, R.color.logo_cyan)
+    val throughColor = ContextCompat.getColor(this, R.color.logo_peach)
+
+    val walkLength = 4 // "Walk"
+    if (titleText.length >= walkLength) {
+      spannable.setSpan(
+        ForegroundColorSpan(walkColor),
+        0,
+        walkLength,
+        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+      )
+    }
+    if (titleText.length > walkLength) {
+      spannable.setSpan(
+        ForegroundColorSpan(throughColor),
+        walkLength,
+        titleText.length,
+        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+      )
+    }
+    binding.appTitle.text = spannable
   }
 
   override fun onResume() {

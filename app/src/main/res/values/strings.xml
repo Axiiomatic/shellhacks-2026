@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Walkthrough</string>
+    <string name="app_name">WalkThrough</string>
     <string name="app_tagline">Hazard &amp; Navigation Assistant</string>
     <string name="status_active">ACTIVE • Monitoring</string>
-    <string name="permission_camera_rationale">Camera permission is required for Walkthrough real-time hazard navigation.</string>
+    <string name="permission_camera_rationale">Camera permission is required for WalkThrough real-time hazard navigation.</string>
 
     <string name="quick_controls_title">Quick Controls</string>
     <string name="quick_controls_subtitle">Tap any control to toggle feedback mode</string>

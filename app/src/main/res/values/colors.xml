@@ -13,6 +13,11 @@
     <color name="pastel_lavender">#FFE5DBFF</color>
     <color name="pastel_peach">#FFFFD8A8</color>
 
+    <!-- Logo Brand Colors -->
+    <color name="logo_cyan">#FFA0D8D7</color>
+    <color name="logo_peach">#FFF9C2A3</color>
+    <color name="ic_launcher_background">#FF181820</color>
+
     <!-- Accessible Semantic Aliases -->
     <color name="accessible_gold">#FFFFE066</color>
     <color name="accessible_green">#FFB2F2BB</color>
