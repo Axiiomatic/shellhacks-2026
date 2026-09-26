@@ -8,6 +8,7 @@ import com.google.mlkit.vision.objects.DetectedObject
 import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.ObjectDetector
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
+import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
 import java.io.IOException
@@ -53,7 +54,12 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
     frameMetadata: FrameMetadata?
   ) {
     val grayMat = if (frameData != null && frameMetadata != null) {
-      createGrayMatFromBuffer(frameData, frameMetadata.width, frameMetadata.height)
+      createGrayMatFromBuffer(
+        frameData,
+        frameMetadata.width,
+        frameMetadata.height,
+        frameMetadata.rotation
+      )
     } else {
       null
     }
@@ -107,7 +113,12 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
     }
   }
 
-  private fun createGrayMatFromBuffer(data: ByteBuffer, width: Int, height: Int): Mat? {
+  private fun createGrayMatFromBuffer(
+    data: ByteBuffer,
+    width: Int,
+    height: Int,
+    rotationDegrees: Int
+  ): Mat? {
     return try {
       val length = width * height
       if (length <= 0) return null
@@ -116,9 +127,25 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
       duplicate.rewind()
       if (duplicate.remaining() >= length) {
         duplicate.get(bytes, 0, length)
-        val mat = Mat(height, width, CvType.CV_8UC1)
-        mat.put(0, 0, bytes)
-        mat
+        val rawMat = Mat(height, width, CvType.CV_8UC1)
+        rawMat.put(0, 0, bytes)
+
+        if (rotationDegrees % 360 == 0) {
+          rawMat
+        } else {
+          val rotatedMat = Mat()
+          when ((rotationDegrees % 360 + 360) % 360) {
+            90 -> Core.rotate(rawMat, rotatedMat, Core.ROTATE_90_CLOCKWISE)
+            180 -> Core.rotate(rawMat, rotatedMat, Core.ROTATE_180)
+            270 -> Core.rotate(rawMat, rotatedMat, Core.ROTATE_90_COUNTERCLOCKWISE)
+            else -> {
+              rawMat.release()
+              return null
+            }
+          }
+          rawMat.release()
+          rotatedMat
+        }
       } else {
         null
       }
