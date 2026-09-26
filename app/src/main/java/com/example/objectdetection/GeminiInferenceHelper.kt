@@ -32,7 +32,6 @@ class GeminiInferenceHelper(private val context: Context) {
 
   suspend fun analyzeFrame(
     bitmap: Bitmap,
-    isBumpAlert: Boolean,
     sceneContext: String = "",
     recentOutputs: List<String> = emptyList()
   ): GeminiInferenceResult = withContext(Dispatchers.IO) {
