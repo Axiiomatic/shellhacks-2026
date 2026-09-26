@@ -28,6 +28,25 @@ class ObjectGraphic(
   private val textPaints = Array(numColors) { Paint() }
   private val labelPaints = Array(numColors) { Paint() }
 
+  private val warningBoxPaint = Paint().apply {
+    color = Color.RED
+    style = Paint.Style.STROKE
+    strokeWidth = STROKE_WIDTH * 1.5f
+    isAntiAlias = true
+  }
+
+  private val warningLabelPaint = Paint().apply {
+    color = Color.RED
+    style = Paint.Style.FILL
+    isAntiAlias = true
+  }
+
+  private val warningTextPaint = Paint().apply {
+    color = Color.WHITE
+    textSize = TEXT_SIZE
+    isAntiAlias = true
+  }
+
   private val vectorPaint = Paint().apply {
     color = Color.CYAN
     style = Paint.Style.STROKE
@@ -67,6 +86,12 @@ class ObjectGraphic(
     val colorID = if (detectedObject.trackingId == null) 0
       else abs(detectedObject.trackingId!! % numColors)
 
+    val isWarning = trackInfo?.isRapidApproaching == true
+
+    val boxPaintToUse = if (isWarning) warningBoxPaint else boxPaints[colorID]
+    val labelPaintToUse = if (isWarning) warningLabelPaint else labelPaints[colorID]
+    val textPaintToUse = if (isWarning) warningTextPaint else textPaints[colorID]
+
     // Draws the bounding box.
     val rect = RectF(detectedObject.boundingBox)
     val x0 = translateX(rect.left)
@@ -75,7 +100,7 @@ class ObjectGraphic(
     rect.right = max(x0, x1)
     rect.top = translateY(rect.top)
     rect.bottom = translateY(rect.bottom)
-    canvas.drawRect(rect, boxPaints[colorID])
+    canvas.drawRect(rect, boxPaintToUse)
 
     // Build text lines
     val lines = mutableListOf<String>()
@@ -92,7 +117,7 @@ class ObjectGraphic(
     val totalHeight = lines.size * lineHeight
     var maxTextWidth = 0.0f
     for (line in lines) {
-      val w = textPaints[colorID].measureText(line)
+      val w = textPaintToUse.measureText(line)
       if (w > maxTextWidth) {
         maxTextWidth = w
       }
@@ -104,7 +129,7 @@ class ObjectGraphic(
       rect.left + maxTextWidth + 3 * STROKE_WIDTH,
       rect.top
     )
-    canvas.drawRect(backgroundRect, labelPaints[colorID])
+    canvas.drawRect(backgroundRect, labelPaintToUse)
 
     var currentY = rect.top - totalHeight + TEXT_SIZE - 2.0f
     for (line in lines) {
@@ -112,7 +137,7 @@ class ObjectGraphic(
         line,
         rect.left + STROKE_WIDTH,
         currentY,
-        textPaints[colorID]
+        textPaintToUse
       )
       currentY += lineHeight
     }

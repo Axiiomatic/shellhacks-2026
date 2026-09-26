@@ -10,12 +10,13 @@ import com.google.mlkit.vision.objects.ObjectDetector
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 import java.io.IOException
 
-/** A processor to run object detector with normalized relative motion tracking. */
+/** A processor to run object detector with normalized relative motion tracking and haptic alerts. */
 class ObjectDetectorProcessor(context: Context, options: ObjectDetectorOptions) :
   VisionProcessorBase<List<DetectedObject>>(context) {
 
   private val detector: ObjectDetector = ObjectDetection.getClient(options)
   private val motionTracker = MotionTracker()
+  private val vibratorHelper = VibratorHelper(context)
 
   override fun stop() {
     super.stop()
@@ -37,9 +38,18 @@ class ObjectDetectorProcessor(context: Context, options: ObjectDetectorOptions) 
       frameHeight = graphicOverlay.imageHeight
     )
 
+    var rapidApproachDetected = false
+
     for (result in results) {
       val trackInfo = trackInfoMap[result]
+      if (trackInfo?.isRapidApproaching == true) {
+        rapidApproachDetected = true
+      }
       graphicOverlay.add(ObjectGraphic(graphicOverlay, result, trackInfo))
+    }
+
+    if (rapidApproachDetected) {
+      vibratorHelper.vibrateRapidApproach()
     }
   }
 

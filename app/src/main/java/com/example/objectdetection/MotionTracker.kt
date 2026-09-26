@@ -13,6 +13,8 @@ import kotlin.math.sqrt
 data class ObjectTrackInfo(
   val trackingId: Int?,
   val relativeSpeed: Float,
+  val relativeScaleGrowth: Float = 0f,
+  val isRapidApproaching: Boolean = false,
   val motionDirection: MotionDirection,
   val motionLabel: String,
   val displacementX: Float,
@@ -38,7 +40,8 @@ enum class MotionDirection {
 }
 
 /**
- * Tracker that calculates real-time normalized relative motion for detected objects.
+ * Tracker that calculates real-time normalized relative motion for detected objects
+ * and measures sustained scale growth (imminent bump/collision) based on bounding box changes.
  */
 class MotionTracker {
 
@@ -50,18 +53,21 @@ class MotionTracker {
     var lastHeight: Float,
     var lastTimestampMs: Long,
     var smoothedRelativeSpeed: Float,
+    var smoothedScaleGrowth: Float,
     var smoothedDx: Float,
     var smoothedDy: Float,
+    var consecutiveApproachCount: Int = 0,
     var lastMotionDirection: MotionDirection = MotionDirection.STATIONARY,
   )
 
   private val trackedObjects = mutableMapOf<Int, TrackedObjectState>()
   private var fallbackIdCounter = -1
 
-  // Exponential Moving Average (EMA) factor for smoothing motion jitter
-  private val motionAlpha = 0.35f
+  // Exponential Moving Average (EMA) factors for smoothing motion & scale jitter
+  private val motionAlpha = 0.25f
+  private val scaleAlpha = 0.15f
 
-  // Minimum normalized relative speed (frame fraction / sec) to classify as moving
+  // Minimum normalized relative speed to classify as moving
   private val relativeMovementThreshold = 0.08f
 
   /**
@@ -104,14 +110,18 @@ class MotionTracker {
           lastHeight = boxHeight,
           lastTimestampMs = currentTimeMs,
           smoothedRelativeSpeed = 0f,
+          smoothedScaleGrowth = 0f,
           smoothedDx = 0f,
-          smoothedDy = 0f
+          smoothedDy = 0f,
+          consecutiveApproachCount = 0
         )
         trackedObjects[id] = newState
 
         results[obj] = ObjectTrackInfo(
           trackingId = obj.trackingId,
           relativeSpeed = 0f,
+          relativeScaleGrowth = 0f,
+          isRapidApproaching = false,
           motionDirection = MotionDirection.STATIONARY,
           motionLabel = "Stationary",
           displacementX = 0f,
@@ -131,6 +141,8 @@ class MotionTracker {
           results[obj] = ObjectTrackInfo(
             trackingId = obj.trackingId,
             relativeSpeed = 0f,
+            relativeScaleGrowth = 0f,
+            isRapidApproaching = false,
             motionDirection = MotionDirection.STATIONARY,
             motionLabel = "Stationary",
             displacementX = 0f,
@@ -149,28 +161,49 @@ class MotionTracker {
         val normalizedDist = distPx / frameDiagonalPx
         val instRelativeSpeed = normalizedDist / dtSec
 
+        // Calculate Bounding Box Diagonal Scale Growth Rate & Screen Fraction
+        val currentDiagonal = sqrt(boxWidth * boxWidth + boxHeight * boxHeight)
+        val prevDiagonal = max(sqrt(state.lastWidth * state.lastWidth + state.lastHeight * state.lastHeight), 1.0f)
+        val instScaleGrowth = ((currentDiagonal - prevDiagonal) / prevDiagonal) / dtSec
+        val screenFraction = currentDiagonal / frameDiagonalPx
+
         // Apply EMA filter
         val smoothedDx = motionAlpha * dx + (1f - motionAlpha) * state.smoothedDx
         val smoothedDy = motionAlpha * dy + (1f - motionAlpha) * state.smoothedDy
         val smoothedRelativeSpeed = motionAlpha * instRelativeSpeed + (1f - motionAlpha) * state.smoothedRelativeSpeed
+        val smoothedScaleGrowth = scaleAlpha * instScaleGrowth + (1f - scaleAlpha) * state.smoothedScaleGrowth
 
         state.smoothedDx = smoothedDx
         state.smoothedDy = smoothedDy
         state.smoothedRelativeSpeed = smoothedRelativeSpeed
+        state.smoothedScaleGrowth = smoothedScaleGrowth
 
-        // Relative box area change rate (Approaching / Receding)
-        val currentArea = boxWidth * boxHeight
-        val prevArea = max(state.lastWidth * state.lastHeight, 1.0f)
-        val relativeAreaChangeRate = ((currentArea - prevArea) / prevArea) / dtSec
+        // Sustained approach accumulator:
+        // Object must be expanding rapidly (>= 30%/s), occupy a major portion of the frame (>= 22% frame diagonal),
+        // and not be a fast lateral pan across the screen.
+        val isExpandingRapidly = smoothedScaleGrowth >= RAPID_APPROACH_THRESHOLD &&
+            screenFraction >= MIN_SCREEN_FRACTION_FOR_COLLISION &&
+            smoothedRelativeSpeed < MAX_LATERAL_PAN_SPEED
 
-        val isMoving = smoothedRelativeSpeed >= relativeMovementThreshold || abs(relativeAreaChangeRate) > 0.25f
+        if (isExpandingRapidly) {
+          state.consecutiveApproachCount = minOf(15, state.consecutiveApproachCount + 1)
+        } else {
+          // Rapid decay on non-expanding jitter frames
+          state.consecutiveApproachCount = maxOf(0, state.consecutiveApproachCount - 2)
+        }
+
+        // Require sustained continuous expansion over multiple frames (~350-450ms)
+        val isRapidApproaching = state.consecutiveApproachCount >= SUSTAINED_FRAMES_REQUIRED
+
+        val isMoving = smoothedRelativeSpeed >= relativeMovementThreshold || abs(smoothedScaleGrowth) > 0.10f
 
         val (motionDirection, motionLabel) = determineMotionDirection(
           isMoving = isMoving,
+          isRapidApproaching = isRapidApproaching,
           dx = smoothedDx,
           dy = smoothedDy,
           relativeSpeed = smoothedRelativeSpeed,
-          relativeAreaChangeRate = relativeAreaChangeRate
+          relativeScaleGrowth = smoothedScaleGrowth
         )
 
         // Update object state
@@ -184,6 +217,8 @@ class MotionTracker {
         results[obj] = ObjectTrackInfo(
           trackingId = obj.trackingId,
           relativeSpeed = smoothedRelativeSpeed,
+          relativeScaleGrowth = smoothedScaleGrowth,
+          isRapidApproaching = isRapidApproaching,
           motionDirection = motionDirection,
           motionLabel = motionLabel,
           displacementX = smoothedDx,
@@ -223,23 +258,27 @@ class MotionTracker {
 
   private fun determineMotionDirection(
     isMoving: Boolean,
+    isRapidApproaching: Boolean,
     dx: Float,
     dy: Float,
     relativeSpeed: Float,
-    relativeAreaChangeRate: Float
+    relativeScaleGrowth: Float
   ): Pair<MotionDirection, String> {
-    if (!isMoving) {
+    if (!isMoving && !isRapidApproaching) {
       return Pair(MotionDirection.STATIONARY, "Stationary")
     }
 
-    // Format relative motion as normalized score (e.g. Rel: 0.35)
     val relStr = "Rel: %.2f".format(relativeSpeed)
 
-    // Check for approaching or receding scale motion
-    if (relativeAreaChangeRate > 0.25f) {
-      return Pair(MotionDirection.APPROACHING, "Approaching ($relStr)")
-    } else if (relativeAreaChangeRate < -0.25f) {
-      return Pair(MotionDirection.RECEDING, "Receding ($relStr)")
+    if (isRapidApproaching) {
+      val pctStr = "+%.0f%%/s".format(relativeScaleGrowth * 100f)
+      return Pair(MotionDirection.APPROACHING, "⚠️ BUMP WARNING ($pctStr)")
+    } else if (relativeScaleGrowth > 0.10f) {
+      val pctStr = "+%.0f%%/s".format(relativeScaleGrowth * 100f)
+      return Pair(MotionDirection.APPROACHING, "Getting Closer ($pctStr)")
+    } else if (relativeScaleGrowth < -0.10f) {
+      val pctStr = "-%.0f%%/s".format(abs(relativeScaleGrowth) * 100f)
+      return Pair(MotionDirection.RECEDING, "Getting Farther ($pctStr)")
     }
 
     // Direction angle in degrees (screen space: x right, y down)
@@ -273,5 +312,9 @@ class MotionTracker {
 
   companion object {
     private const val STALE_THRESHOLD_MS = 1200L
+    const val RAPID_APPROACH_THRESHOLD = 0.30f // 30%/s scale growth rate
+    const val MIN_SCREEN_FRACTION_FOR_COLLISION = 0.22f // Object must occupy >= 22% of frame diagonal
+    const val MAX_LATERAL_PAN_SPEED = 0.70f // Filters out fast lateral camera sweeps
+    const val SUSTAINED_FRAMES_REQUIRED = 5 // Requires at least 5 consecutive expanding frames
   }
 }

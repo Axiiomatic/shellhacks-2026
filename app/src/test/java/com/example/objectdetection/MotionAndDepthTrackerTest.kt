@@ -69,4 +69,34 @@ class MotionTrackerTest {
     assertTrue("Motion label should indicate rightward movement, got: ${trackInfo2.motionLabel}", trackInfo2.motionLabel.contains("Right"))
     assertTrue("Relative speed should be positive", trackInfo2.relativeSpeed > 0.0f)
   }
+
+  @Test
+  fun testSustainedCollisionApproach() {
+    val tracker = MotionTracker()
+
+    // Single frame expansion should NOT trigger collision alert immediately (prevents false positives)
+    val objFrame1 = mock(DetectedObject::class.java)
+    `when`(objFrame1.boundingBox).thenReturn(createRect(210, 490, 510, 790))
+    `when`(objFrame1.trackingId).thenReturn(303)
+    val res1 = tracker.processFrame(listOf(objFrame1), 720, 1280)
+    assertFalse("Single frame expansion should not trigger collision alert", res1[objFrame1]!!.isRapidApproaching)
+
+    // Symmetrical expansion around center over multiple frames triggers collision warning
+    var lastRes: ObjectTrackInfo? = null
+    var size = 300
+    for (step in 1..6) {
+      Thread.sleep(50)
+      size += 80
+      val halfSize = size / 2
+      val objNext = mock(DetectedObject::class.java)
+      `when`(objNext.boundingBox).thenReturn(createRect(360 - halfSize, 640 - halfSize, 360 + halfSize, 640 + halfSize))
+      `when`(objNext.trackingId).thenReturn(303)
+      val res = tracker.processFrame(listOf(objNext), 720, 1280)
+      lastRes = res[objNext]
+    }
+
+    assertNotNull(lastRes)
+    assertTrue("Sustained expansion should trigger collision alert", lastRes!!.isRapidApproaching)
+    assertTrue("Motion label should indicate BUMP WARNING", lastRes.motionLabel.contains("BUMP WARNING"))
+  }
 }
