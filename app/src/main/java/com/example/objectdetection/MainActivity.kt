@@ -18,7 +18,6 @@ class MainActivity : AppCompatActivity() {
 
   private lateinit var binding: ActivityMainBinding
   private var cameraSource: CameraSource? = null
-  private var isFrontFacing = false
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -27,7 +26,6 @@ class MainActivity : AppCompatActivity() {
     setContentView(binding.root)
 
     setupAlertToggles()
-    setupCameraControls()
 
     if (allRuntimePermissionsGranted()) {
       createCameraSource()
@@ -76,28 +74,6 @@ class MainActivity : AppCompatActivity() {
       PreferenceUtils.setInferenceModeEnabled(this, newInferenceState)
       updateInferenceToggleButton()
       val cd = if (newInferenceState) getString(R.string.cd_inference_on) else getString(R.string.cd_inference_off)
-      view.announceForAccessibility(cd)
-    }
-  }
-
-  private fun setupCameraControls() {
-    updateCameraFacingButton()
-
-    binding.facingSwitch.setOnClickListener { view ->
-      view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-      isFrontFacing = !isFrontFacing
-      val newFacing = if (isFrontFacing) {
-        CameraSource.CAMERA_FACING_FRONT
-      } else {
-        CameraSource.CAMERA_FACING_BACK
-      }
-
-      cameraSource?.setFacing(newFacing)
-      binding.previewView.stop()
-      startCameraSource()
-      updateCameraFacingButton()
-
-      val cd = if (isFrontFacing) getString(R.string.cd_camera_front) else getString(R.string.cd_camera_back)
       view.announceForAccessibility(cd)
     }
   }
@@ -172,11 +148,6 @@ class MainActivity : AppCompatActivity() {
       binding.inferenceToggle.alpha = 0.55f
     }
     binding.inferenceToggle.contentDescription = if (isInferenceOn) getString(R.string.cd_inference_on) else getString(R.string.cd_inference_off)
-  }
-
-  private fun updateCameraFacingButton() {
-    binding.facingSwitch.text = if (isFrontFacing) getString(R.string.camera_front) else getString(R.string.camera_back)
-    binding.facingSwitch.contentDescription = if (isFrontFacing) getString(R.string.cd_camera_front) else getString(R.string.cd_camera_back)
   }
 
   private fun dpToPx(dp: Int): Int {
