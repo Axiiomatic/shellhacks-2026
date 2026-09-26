@@ -67,6 +67,10 @@ class MotionTracker {
   private val cornerAnchorTracker = CornerAnchorTracker()
   private var fallbackIdCounter = -1
 
+  fun detectFrameKeyPoints(currGrayMat: Mat?): List<Point> {
+    return cornerAnchorTracker.detectFrameKeyPoints(currGrayMat)
+  }
+
   // Exponential Moving Average (EMA) factors for smoothing motion & scale jitter
   private val motionAlpha = 0.25f
   private val scaleAlpha = 0.20f

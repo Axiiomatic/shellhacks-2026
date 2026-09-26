@@ -75,6 +75,8 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
       var rapidApproachDetected = false
       var hazardScreenNormX = 0.5f
       var maxHazardArea = -1.0f
+      val frameKeyPoints = motionTracker.detectFrameKeyPoints(grayMat)
+      graphicOverlay.add(KeyPointGraphic(graphicOverlay, frameKeyPoints, emptyList()))
 
       val safeWidth = maxOf(graphicOverlay.imageWidth, 1).toFloat()
 

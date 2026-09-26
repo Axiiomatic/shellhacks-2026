@@ -45,6 +45,27 @@ class CornerAnchorTracker {
 
   private val trackedObjectAnchors = mutableMapOf<Int, ObjectAnchorState>()
 
+  fun detectFrameKeyPoints(currGrayMat: Mat?): List<Point> {
+    if (currGrayMat == null || currGrayMat.empty()) return emptyList()
+
+    return try {
+      val corners = MatOfPoint()
+      Imgproc.goodFeaturesToTrack(
+        currGrayMat,
+        corners,
+        MAX_FRAME_KEYPOINTS,
+        FRAME_CORNER_QUALITY_LEVEL,
+        MIN_CORNER_DISTANCE
+      )
+      val points = corners.toList()
+      corners.release()
+      points
+    } catch (e: Exception) {
+      Log.e(TAG, "Error detecting frame key points", e)
+      emptyList()
+    }
+  }
+
   /**
    * Processes a detected object bounding box against the current grayscale frame matrix
    * and computes relative anchor scale expansion rate.
@@ -341,6 +362,8 @@ class CornerAnchorTracker {
   companion object {
     private const val TAG = "CornerAnchorTracker"
     private const val MAX_CORNERS_PER_OBJECT = 16
+    private const val MAX_FRAME_KEYPOINTS = 100
+    private const val FRAME_CORNER_QUALITY_LEVEL = 0.01
     private const val CORNER_QUALITY_LEVEL = 0.05
     private const val MIN_CORNER_DISTANCE = 10.0
     private const val MIN_POINTS_TO_TRACK = 3
