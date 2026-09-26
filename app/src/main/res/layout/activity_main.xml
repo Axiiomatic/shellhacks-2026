@@ -80,7 +80,7 @@
 
     </LinearLayout>
 
-    <!-- Bottom Sliding Card Overlay (Bottom Sheet Slip) -->
+    <!-- Bottom Sliding Card Overlay (Whole Card Slides Upwards) -->
     <LinearLayout
         android:id="@+id/control_sheet"
         android:layout_width="match_parent"
@@ -92,6 +92,7 @@
         android:paddingEnd="20dp"
         android:paddingBottom="24dp"
         android:elevation="16dp"
+        android:animateLayoutChanges="true"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <!-- Drag Handle Indicator -->
@@ -126,18 +127,19 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
-        <!-- Vertical Scrollable Container for Large Accessible Buttons -->
+        <!-- Vertical Scrollable Container for Entire Card Content -->
         <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="220dp"
-            android:scrollbars="vertical"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
             android:fillViewport="true">
 
             <LinearLayout
                 android:id="@+id/toggles_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:animateLayoutChanges="true">
 
                 <!-- Audio Alert Toggle -->
                 <com.google.android.material.button.MaterialButton
