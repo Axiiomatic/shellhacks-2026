@@ -14,12 +14,14 @@ import java.io.IOException
 import java.nio.ByteBuffer
 
 /** A processor to run object detector with normalized relative motion tracking and haptic alerts. */
-class ObjectDetectorProcessor(context: Context, options: ObjectDetectorOptions) :
+class ObjectDetectorProcessor(private val context: Context, options: ObjectDetectorOptions) :
   VisionProcessorBase<List<DetectedObject>>(context) {
 
   private val detector: ObjectDetector = ObjectDetection.getClient(options)
   private val motionTracker = MotionTracker()
   private val vibratorHelper = VibratorHelper(context)
+  private val audioAlertHelper = AudioAlertHelper(context)
+  private var lastAlertTimeMs = 0L
 
   override fun stop() {
     super.stop()
@@ -28,6 +30,7 @@ class ObjectDetectorProcessor(context: Context, options: ObjectDetectorOptions) 
     } catch (e: IOException) {
       Log.e(TAG, "Exception thrown while trying to close object detector!", e)
     }
+    audioAlertHelper.release()
   }
 
   override fun detectInImage(image: InputImage): Task<List<DetectedObject>> {
@@ -69,7 +72,16 @@ class ObjectDetectorProcessor(context: Context, options: ObjectDetectorOptions) 
       }
 
       if (rapidApproachDetected) {
-        vibratorHelper.vibrateRapidApproach()
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastAlertTimeMs >= ALERT_THROTTLE_INTERVAL_MS) {
+          lastAlertTimeMs = currentTime
+          if (PreferenceUtils.isVibrationEnabled(context)) {
+            vibratorHelper.vibrateRapidApproach()
+          }
+          if (PreferenceUtils.isAudioEnabled(context)) {
+            audioAlertHelper.playAlertSound()
+          }
+        }
       }
     } finally {
       grayMat?.release()
@@ -103,5 +115,6 @@ class ObjectDetectorProcessor(context: Context, options: ObjectDetectorOptions) 
 
   companion object {
     private const val TAG = "ObjectDetectorProcessor"
+    private const val ALERT_THROTTLE_INTERVAL_MS = 1200L
   }
 }

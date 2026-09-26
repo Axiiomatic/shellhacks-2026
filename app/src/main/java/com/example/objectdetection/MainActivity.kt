@@ -25,6 +25,8 @@ class MainActivity : AppCompatActivity() {
     binding = ActivityMainBinding.inflate(layoutInflater)
     setContentView(binding.root)
 
+    setupAlertToggles()
+
     binding.facingSwitch.setOnClickListener {
       isFrontFacing = !isFrontFacing
       val newFacing = if (isFrontFacing) {
@@ -49,6 +51,39 @@ class MainActivity : AppCompatActivity() {
     } else {
       getRuntimePermissions()
     }
+  }
+
+  private fun setupAlertToggles() {
+    updateAudioToggleButton()
+    updateVibrationToggleButton()
+
+    binding.audioToggle.setOnClickListener {
+      val newAudioState = !PreferenceUtils.isAudioEnabled(this)
+      PreferenceUtils.setAudioEnabled(this, newAudioState)
+      updateAudioToggleButton()
+    }
+
+    binding.vibrationToggle.setOnClickListener {
+      val newVibeState = !PreferenceUtils.isVibrationEnabled(this)
+      PreferenceUtils.setVibrationEnabled(this, newVibeState)
+      updateVibrationToggleButton()
+    }
+  }
+
+  private fun updateAudioToggleButton() {
+    val isAudioOn = PreferenceUtils.isAudioEnabled(this)
+    binding.audioToggle.text = if (isAudioOn) getString(R.string.audio_alert_on) else getString(R.string.audio_alert_off)
+    val iconRes = if (isAudioOn) R.drawable.ic_volume_up else R.drawable.ic_volume_off
+    binding.audioToggle.setIconResource(iconRes)
+    binding.audioToggle.alpha = if (isAudioOn) 1.0f else 0.5f
+  }
+
+  private fun updateVibrationToggleButton() {
+    val isVibeOn = PreferenceUtils.isVibrationEnabled(this)
+    binding.vibrationToggle.text = if (isVibeOn) getString(R.string.vibe_alert_on) else getString(R.string.vibe_alert_off)
+    val iconRes = if (isVibeOn) R.drawable.ic_vibration else R.drawable.ic_vibration_off
+    binding.vibrationToggle.setIconResource(iconRes)
+    binding.vibrationToggle.alpha = if (isVibeOn) 1.0f else 0.5f
   }
 
   private fun initOpenCV() {

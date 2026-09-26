@@ -2,6 +2,10 @@
 <resources>
     <string name="app_name">Object Detection</string>
     <string name="permission_camera_rationale">Camera permission is required for real-time object detection.</string>
-    <string name="switch_to_front_camera">Switch to Front Camera</string>
-    <string name="switch_to_back_camera">Switch to Back Camera</string>
+    <string name="switch_to_front_camera">Front Cam</string>
+    <string name="switch_to_back_camera">Back Cam</string>
+    <string name="audio_alert_on">Audio: ON</string>
+    <string name="audio_alert_off">Audio: OFF</string>
+    <string name="vibe_alert_on">Vibe: ON</string>
+    <string name="vibe_alert_off">Vibe: OFF</string>
 </resources>

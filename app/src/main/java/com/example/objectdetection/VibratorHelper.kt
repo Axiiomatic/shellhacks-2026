@@ -58,6 +58,6 @@ class VibratorHelper(context: Context) {
 
   companion object {
     private const val TAG = "VibratorHelper"
-    private const val VIBRATE_COOLDOWN_MS = 400L
+    private const val VIBRATE_COOLDOWN_MS = 1200L
   }
 }
