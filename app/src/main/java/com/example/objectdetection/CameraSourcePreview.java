@@ -135,6 +135,18 @@ public class CameraSourcePreview extends ViewGroup {
       int verticalOffset = (int) (layoutWidth / previewAspectRatio - layoutHeight) / 2;
       surfaceView.layout(0, -verticalOffset, layoutWidth, layoutHeight + verticalOffset);
     }
+
+    if (overlay != null && cameraSource != null && cameraSource.getPreviewSize() != null) {
+      Size size = cameraSource.getPreviewSize();
+      int min = Math.min(size.getWidth(), size.getHeight());
+      int max = Math.max(size.getWidth(), size.getHeight());
+      boolean isImageFlipped = cameraSource.getCameraFacing() == CameraSource.CAMERA_FACING_FRONT;
+      if (isPortraitMode()) {
+        overlay.setImageSourceInfo(min, max, isImageFlipped);
+      } else {
+        overlay.setImageSourceInfo(max, min, isImageFlipped);
+      }
+    }
   }
 
   private boolean isPortraitMode() {

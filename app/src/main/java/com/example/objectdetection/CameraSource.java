@@ -13,7 +13,6 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.WindowManager;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresPermission;
 import com.google.android.gms.common.images.Size;
 import java.io.IOException;
@@ -30,8 +29,8 @@ public class CameraSource {
   public static final int CAMERA_FACING_FRONT = CameraInfo.CAMERA_FACING_FRONT;
 
   public static final int IMAGE_FORMAT = ImageFormat.NV21;
-  public static final int DEFAULT_REQUESTED_CAMERA_PREVIEW_WIDTH = 480;
-  public static final int DEFAULT_REQUESTED_CAMERA_PREVIEW_HEIGHT = 360;
+  public static final int DEFAULT_REQUESTED_CAMERA_PREVIEW_WIDTH = 1280;
+  public static final int DEFAULT_REQUESTED_CAMERA_PREVIEW_HEIGHT = 720;
 
   private static final String TAG = "CameraSource";
   private static final int DUMMY_TEXTURE_NAME = 100;
@@ -275,17 +274,17 @@ public class CameraSource {
     int desiredPreviewFpsScaled = (int) (desiredPreviewFps * 1000.0f);
 
     int[] selectedFpsRange = null;
-    int minDiff = Integer.MAX_VALUE;
+    int minUpperBoundDiff = Integer.MAX_VALUE;
+    int minLowerBound = Integer.MAX_VALUE;
     List<int[]> previewFpsRangeList = camera.getParameters().getSupportedPreviewFpsRange();
 
     for (int[] range : previewFpsRangeList) {
-      int deltaMin = desiredPreviewFpsScaled - range[Parameters.PREVIEW_FPS_MIN_INDEX];
-      int deltaMax = desiredPreviewFpsScaled - range[Parameters.PREVIEW_FPS_MAX_INDEX];
-      int diff = Math.abs(deltaMin) + Math.abs(deltaMax);
-
-      if (diff < minDiff) {
+      int upperBoundDiff = Math.abs(desiredPreviewFpsScaled - range[Parameters.PREVIEW_FPS_MAX_INDEX]);
+      int lowerBound = range[Parameters.PREVIEW_FPS_MIN_INDEX];
+      if (upperBoundDiff <= minUpperBoundDiff && lowerBound <= minLowerBound) {
         selectedFpsRange = range;
-        minDiff = diff;
+        minUpperBoundDiff = upperBoundDiff;
+        minLowerBound = lowerBound;
       }
     }
     return selectedFpsRange;
@@ -315,17 +314,17 @@ public class CameraSource {
     CameraInfo cameraInfo = new CameraInfo();
     Camera.getCameraInfo(cameraId, cameraInfo);
 
-    int displayOrientation;
+    int displayAngle;
     if (cameraInfo.facing == CameraInfo.CAMERA_FACING_FRONT) {
-      displayOrientation = (cameraInfo.orientation + degrees) % 360;
-      displayOrientation = (360 - displayOrientation) % 360;
+      this.rotationDegrees = (cameraInfo.orientation + degrees) % 360;
+      displayAngle = (360 - this.rotationDegrees) % 360;
     } else {
-      displayOrientation = (cameraInfo.orientation - degrees + 360) % 360;
+      this.rotationDegrees = (cameraInfo.orientation - degrees + 360) % 360;
+      displayAngle = this.rotationDegrees;
     }
 
-    rotationDegrees = displayOrientation;
-    camera.setDisplayOrientation(displayOrientation);
-    parameters.setRotation(displayOrientation);
+    camera.setDisplayOrientation(displayAngle);
+    parameters.setRotation(this.rotationDegrees);
   }
 
   private byte[] createBuffer(Size previewSize) {
