@@ -8,7 +8,10 @@ import com.google.mlkit.vision.objects.DetectedObject
 import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.ObjectDetector
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
+import org.opencv.core.CvType
+import org.opencv.core.Mat
 import java.io.IOException
+import java.nio.ByteBuffer
 
 /** A processor to run object detector with normalized relative motion tracking and haptic alerts. */
 class ObjectDetectorProcessor(context: Context, options: ObjectDetectorOptions) :
@@ -32,24 +35,65 @@ class ObjectDetectorProcessor(context: Context, options: ObjectDetectorOptions) 
   }
 
   override fun onSuccess(results: List<DetectedObject>, graphicOverlay: GraphicOverlay) {
-    val trackInfoMap = motionTracker.processFrame(
-      detectedObjects = results,
-      frameWidth = graphicOverlay.imageWidth,
-      frameHeight = graphicOverlay.imageHeight
-    )
+    onSuccess(results, graphicOverlay, null, null)
+  }
 
-    var rapidApproachDetected = false
-
-    for (result in results) {
-      val trackInfo = trackInfoMap[result]
-      if (trackInfo?.isRapidApproaching == true) {
-        rapidApproachDetected = true
-      }
-      graphicOverlay.add(ObjectGraphic(graphicOverlay, result, trackInfo))
+  override fun onSuccess(
+    results: List<DetectedObject>,
+    graphicOverlay: GraphicOverlay,
+    frameData: ByteBuffer?,
+    frameMetadata: FrameMetadata?
+  ) {
+    val grayMat = if (frameData != null && frameMetadata != null) {
+      createGrayMatFromBuffer(frameData, frameMetadata.width, frameMetadata.height)
+    } else {
+      null
     }
 
-    if (rapidApproachDetected) {
-      vibratorHelper.vibrateRapidApproach()
+    try {
+      val trackInfoMap = motionTracker.processFrame(
+        detectedObjects = results,
+        frameWidth = graphicOverlay.imageWidth,
+        frameHeight = graphicOverlay.imageHeight,
+        currGrayMat = grayMat
+      )
+
+      var rapidApproachDetected = false
+
+      for (result in results) {
+        val trackInfo = trackInfoMap[result]
+        if (trackInfo?.isRapidApproaching == true) {
+          rapidApproachDetected = true
+        }
+        graphicOverlay.add(ObjectGraphic(graphicOverlay, result, trackInfo))
+      }
+
+      if (rapidApproachDetected) {
+        vibratorHelper.vibrateRapidApproach()
+      }
+    } finally {
+      grayMat?.release()
+    }
+  }
+
+  private fun createGrayMatFromBuffer(data: ByteBuffer, width: Int, height: Int): Mat? {
+    return try {
+      val length = width * height
+      if (length <= 0) return null
+      val bytes = ByteArray(length)
+      val duplicate = data.duplicate()
+      duplicate.rewind()
+      if (duplicate.remaining() >= length) {
+        duplicate.get(bytes, 0, length)
+        val mat = Mat(height, width, CvType.CV_8UC1)
+        mat.put(0, 0, bytes)
+        mat
+      } else {
+        null
+      }
+    } catch (e: Exception) {
+      Log.e(TAG, "Error creating OpenCV gray Mat from frame buffer", e)
+      null
     }
   }
 

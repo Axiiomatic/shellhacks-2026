@@ -10,6 +10,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.objectdetection.databinding.ActivityMainBinding
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
+import org.opencv.android.OpenCVLoader
 import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
@@ -20,6 +21,7 @@ class MainActivity : AppCompatActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    initOpenCV()
     binding = ActivityMainBinding.inflate(layoutInflater)
     setContentView(binding.root)
 
@@ -46,6 +48,18 @@ class MainActivity : AppCompatActivity() {
       createCameraSource()
     } else {
       getRuntimePermissions()
+    }
+  }
+
+  private fun initOpenCV() {
+    try {
+      if (OpenCVLoader.initLocal()) {
+        Log.i(TAG, "OpenCV initialized successfully")
+      } else {
+        Log.w(TAG, "OpenCV initLocal returned false")
+      }
+    } catch (e: Throwable) {
+      Log.e(TAG, "Failed to initialize OpenCV", e)
     }
   }
 

@@ -1,6 +1,7 @@
 package com.example.objectdetection
 
 import com.google.mlkit.vision.objects.DetectedObject
+import org.opencv.core.Mat
 import java.util.IdentityHashMap
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -40,8 +41,8 @@ enum class MotionDirection {
 }
 
 /**
- * Tracker that calculates real-time normalized relative motion for detected objects
- * and measures sustained scale growth (imminent bump/collision) based on bounding box changes.
+ * Tracker that calculates real-time normalized relative motion for detected objects.
+ * Prioritizes corner & landmark anchor point tracking via OpenCV optical flow for bump/collision warnings.
  */
 class MotionTracker {
 
@@ -61,11 +62,12 @@ class MotionTracker {
   )
 
   private val trackedObjects = mutableMapOf<Int, TrackedObjectState>()
+  private val cornerAnchorTracker = CornerAnchorTracker()
   private var fallbackIdCounter = -1
 
   // Exponential Moving Average (EMA) factors for smoothing motion & scale jitter
   private val motionAlpha = 0.25f
-  private val scaleAlpha = 0.15f
+  private val scaleAlpha = 0.20f
 
   // Minimum normalized relative speed to classify as moving
   private val relativeMovementThreshold = 0.08f
@@ -77,6 +79,7 @@ class MotionTracker {
     detectedObjects: List<DetectedObject>,
     frameWidth: Int,
     frameHeight: Int,
+    currGrayMat: Mat? = null
   ): Map<DetectedObject, ObjectTrackInfo> {
     val currentTimeMs = System.currentTimeMillis()
     val results = IdentityHashMap<DetectedObject, ObjectTrackInfo>()
@@ -164,14 +167,29 @@ class MotionTracker {
         // Calculate Bounding Box Diagonal Scale Growth Rate & Screen Fraction
         val currentDiagonal = sqrt(boxWidth * boxWidth + boxHeight * boxHeight)
         val prevDiagonal = max(sqrt(state.lastWidth * state.lastWidth + state.lastHeight * state.lastHeight), 1.0f)
-        val instScaleGrowth = ((currentDiagonal - prevDiagonal) / prevDiagonal) / dtSec
+        val instBoxScaleGrowth = ((currentDiagonal - prevDiagonal) / prevDiagonal) / dtSec
         val screenFraction = currentDiagonal / frameDiagonalPx
+
+        // Track corner & landmark anchor points via OpenCV Optical Flow
+        val anchorResult = cornerAnchorTracker.trackObjectAnchors(
+          objectId = id,
+          box = box,
+          currGrayMat = currGrayMat,
+          dtSec = dtSec
+        )
+
+        // Prioritize Anchor Point scale growth (85% weight) over raw Bounding Box growth (15% weight)
+        val effectiveScaleGrowth = if (anchorResult.validPointCount >= 3 && anchorResult.confidence > 0.2f) {
+          0.85f * anchorResult.anchorScaleGrowth + 0.15f * instBoxScaleGrowth
+        } else {
+          instBoxScaleGrowth
+        }
 
         // Apply EMA filter
         val smoothedDx = motionAlpha * dx + (1f - motionAlpha) * state.smoothedDx
         val smoothedDy = motionAlpha * dy + (1f - motionAlpha) * state.smoothedDy
         val smoothedRelativeSpeed = motionAlpha * instRelativeSpeed + (1f - motionAlpha) * state.smoothedRelativeSpeed
-        val smoothedScaleGrowth = scaleAlpha * instScaleGrowth + (1f - scaleAlpha) * state.smoothedScaleGrowth
+        val smoothedScaleGrowth = scaleAlpha * effectiveScaleGrowth + (1f - scaleAlpha) * state.smoothedScaleGrowth
 
         state.smoothedDx = smoothedDx
         state.smoothedDy = smoothedDy
@@ -192,7 +210,7 @@ class MotionTracker {
           state.consecutiveApproachCount = maxOf(0, state.consecutiveApproachCount - 2)
         }
 
-        // Require sustained continuous expansion over multiple frames (~350-450ms)
+        // Require sustained continuous expansion over multiple frames
         val isRapidApproaching = state.consecutiveApproachCount >= SUSTAINED_FRAMES_REQUIRED
 
         val isMoving = smoothedRelativeSpeed >= relativeMovementThreshold || abs(smoothedScaleGrowth) > 0.10f
@@ -229,6 +247,7 @@ class MotionTracker {
     }
 
     cleanStaleTrackedObjects(currentFrameTrackingIds, currentTimeMs)
+    cornerAnchorTracker.cleanStaleAnchors(currentFrameTrackingIds)
     return results
   }
 

@@ -51,6 +51,9 @@ dependencies {
     // ML Kit Object Detection
     implementation 'com.google.mlkit:object-detection:17.0.2'
 
+    // OpenCV for Android
+    implementation 'org.opencv:opencv:4.9.0'
+
     // Guava / Task support
     implementation 'com.google.guava:guava:31.1-android'
 

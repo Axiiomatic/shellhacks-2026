@@ -168,7 +168,7 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
           if (originalCameraImage != null) {
             graphicOverlay.add(CameraImageGraphic(graphicOverlay, originalCameraImage))
           }
-          this@VisionProcessorBase.onSuccess(results, graphicOverlay)
+          this@VisionProcessorBase.onSuccess(results, graphicOverlay, processingImage, processingMetaData)
           if (!PreferenceUtils.shouldHideDetectionInfo(graphicOverlay.context)) {
             graphicOverlay.add(
               InferenceInfoGraphic(
@@ -213,7 +213,16 @@ abstract class VisionProcessorBase<T>(context: Context) : VisionImageProcessor {
 
   protected abstract fun detectInImage(image: InputImage): Task<T>
 
-  protected abstract fun onSuccess(results: T, graphicOverlay: GraphicOverlay)
+  protected open fun onSuccess(results: T, graphicOverlay: GraphicOverlay) {}
+
+  protected open fun onSuccess(
+    results: T,
+    graphicOverlay: GraphicOverlay,
+    frameData: ByteBuffer?,
+    frameMetadata: FrameMetadata?
+  ) {
+    onSuccess(results, graphicOverlay)
+  }
 
   protected abstract fun onFailure(e: Exception)
 }
