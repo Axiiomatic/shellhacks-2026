@@ -13,6 +13,7 @@ import org.opencv.core.CvType
 import org.opencv.core.Mat
 import java.io.IOException
 import java.nio.ByteBuffer
+import java.util.Locale
 
 /** A processor to run object detector with normalized relative motion tracking and haptic alerts. */
 class ObjectDetectorProcessor(private val context: Context, options: ObjectDetectorOptions) :
@@ -77,6 +78,13 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
       var maxHazardArea = -1.0f
       val frameKeyPoints = motionTracker.detectFrameKeyPoints(grayMat)
       graphicOverlay.add(KeyPointGraphic(graphicOverlay, frameKeyPoints, emptyList()))
+      graphicOverlay.add(
+        GeminiTimingGraphic(
+          graphicOverlay,
+          geminiInferenceManager.lastInferenceDurationMs,
+          geminiInferenceManager.inferenceInProgress
+        )
+      )
 
       val safeWidth = maxOf(graphicOverlay.imageWidth, 1).toFloat()
 
@@ -109,9 +117,64 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
         }
       }
 
-      geminiInferenceManager.onFrameProcessed(results, frameData, frameMetadata, rapidApproachDetected)
+      geminiInferenceManager.onFrameProcessed(
+        frameData,
+        frameMetadata,
+        rapidApproachDetected,
+        buildGeminiSceneContext(results, trackInfoMap, graphicOverlay.imageWidth, graphicOverlay.imageHeight)
+      )
     } finally {
       grayMat?.release()
+    }
+  }
+
+  private fun buildGeminiSceneContext(
+    results: List<DetectedObject>,
+    trackInfoMap: Map<DetectedObject, ObjectTrackInfo>,
+    frameWidth: Int,
+    frameHeight: Int
+  ): String {
+    val safeWidth = maxOf(frameWidth, 1).toFloat()
+    val safeHeight = maxOf(frameHeight, 1).toFloat()
+    val objectLines = results.take(MAX_GEMINI_OBJECTS).mapIndexed { index, result ->
+      val box = result.boundingBox
+      val trackInfo = trackInfoMap[result]
+      val labels = result.labels.joinToString(", ") { label ->
+        "${label.text} ${(label.confidence * 100f).toInt()}%"
+      }.ifBlank { "unclassified" }
+      val centerX = ((box.left + box.right) / 2f / safeWidth).coerceIn(0f, 1f)
+      val centerY = ((box.top + box.bottom) / 2f / safeHeight).coerceIn(0f, 1f)
+      val width = ((box.right - box.left) / safeWidth).coerceIn(0f, 1f)
+      val height = ((box.bottom - box.top) / safeHeight).coerceIn(0f, 1f)
+      val motion = trackInfo?.motionLabel ?: "unknown motion"
+      val displacement = if (trackInfo == null) "unknown" else {
+        "dx=%.1fpx, dy=%.1fpx, speed=%.2f, scale=%.2f/s".format(
+          trackInfo.displacementX,
+          trackInfo.displacementY,
+          trackInfo.relativeSpeed,
+          trackInfo.relativeScaleGrowth
+        )
+      }
+      val collision = if (trackInfo?.isRapidApproaching == true) "COLLISION COURSE" else "no collision warning"
+      String.format(
+        Locale.US,
+        "Object %d: %s; center=(%.2f,%.2f); size=(%.2f,%.2f); motion=%s; trajectory=%s; %s",
+        index + 1,
+        labels,
+        centerX,
+        centerY,
+        width,
+        height,
+        motion,
+        displacement,
+        collision
+      )
+    }
+
+    return if (objectLines.isEmpty()) {
+      "Scene context: no tracked objects detected."
+    } else {
+      "Scene context:\n${objectLines.joinToString("\n")}"
     }
   }
 
@@ -164,5 +227,6 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
   companion object {
     private const val TAG = "ObjectDetectorProcessor"
     private const val ALERT_THROTTLE_INTERVAL_MS = 1200L
+    private const val MAX_GEMINI_OBJECTS = 8
   }
 }

@@ -25,7 +25,12 @@ class GeminiInferenceHelper(private val context: Context) {
   private val modelName = "gemini-3.5-flash-lite"
   private val isAnalyzing = AtomicBoolean(false)
 
-  suspend fun analyzeFrame(bitmap: Bitmap, isBumpAlert: Boolean): String? = withContext(Dispatchers.IO) {
+  suspend fun analyzeFrame(
+    bitmap: Bitmap,
+    isBumpAlert: Boolean,
+    sceneContext: String = "",
+    recentOutputs: List<String> = emptyList()
+  ): String? = withContext(Dispatchers.IO) {
     if (!isAnalyzing.compareAndSet(false, true)) {
       Log.d(TAG, "Analysis already in flight, skipping frame.")
       return@withContext null
@@ -42,10 +47,15 @@ class GeminiInferenceHelper(private val context: Context) {
         downscaled.recycle()
       }
 
-      val promptText = if (isBumpAlert) {
-        "BUMP ALERT! Imminent obstacle or collision warning! Give immediate short navigation direction (e.g. stop, turn left, step right). Maximum 20 words."
+      val historyText = if (recentOutputs.isEmpty()) {
+        "Recent Gemini guidance: none."
       } else {
-        "Describe surroundings, obstacles, and directions (e.g. turn left, open door, watch for stop sign). Maximum 20 words."
+        "Recent Gemini guidance:\n" + recentOutputs.joinToString("\n") { "- $it" }
+      }
+      val promptText = if (isBumpAlert) {
+        "BUMP ALERT! The camera may be on a collision course. Use the scene data and image to give one immediate short navigation direction (e.g. stop, turn left, step right). Maximum 20 words.\n$sceneContext\n$historyText"
+      } else {
+        "You are a navigational assistant, helping a blind user walking through the environment. This is a photo of the camera view that the user sees. Analyze the most relevant objects in the image in terms of walking navigation, then give the user verbal directions with the most relevant information. Keep the description of the world short, limiting the response to a sentence or two of landmarks and navigational info. For example, if the photo depicts a trash can approaching the left side of the camera view, warn the user \"Watch out for a trash can slightly on your left.\" \n$sceneContext\n$historyText"
       }
 
       val jsonBody = JSONObject().apply {
