@@ -16,7 +16,12 @@ android {
 
         vectorDrawables.useSupportLibrary = true
 
-        def apiKey = System.getenv("GEMINI_API_KEY") ?: ""
+        Properties localProperties = new Properties()
+        File localPropertiesFile = project.rootProject.file('local.properties')
+        if (localPropertiesFile.exists()) {
+            localProperties.load(new FileInputStream(localPropertiesFile))
+        }
+        def apiKey = System.getenv("GEMINI_API_KEY") ?: localProperties.getProperty("GEMINI_API_KEY", "")
         buildConfigField "String", "GEMINI_API_KEY", "\"$apiKey\""
     }
 

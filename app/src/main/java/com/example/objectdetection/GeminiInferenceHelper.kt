@@ -22,7 +22,7 @@ import kotlin.math.max
 class GeminiInferenceHelper(private val context: Context) {
 
   private val token = BuildConfig.GEMINI_API_KEY
-  private val modelName = "gemini-3.8-flash"
+  private val modelName = "gemini-3.5-flash-lite"
   private val isAnalyzing = AtomicBoolean(false)
 
   suspend fun analyzeFrame(bitmap: Bitmap, isBumpAlert: Boolean): String? = withContext(Dispatchers.IO) {
