@@ -1,1 +1,0 @@
-# shellhacks-2026

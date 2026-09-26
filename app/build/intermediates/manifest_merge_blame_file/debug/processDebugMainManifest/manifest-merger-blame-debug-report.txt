@@ -1,0 +1,258 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.example.objectdetection"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="34" />
+10
+11    <uses-feature android:name="android.hardware.camera.any" />
+11-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:4:5-64
+11-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:4:19-61
+12
+13    <uses-permission android:name="android.permission.CAMERA" />
+13-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:5:5-65
+13-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:5:22-62
+14
+15    <!-- For remote config -->
+16    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+16-->[com.google.mlkit:object-detection:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/17a256eb5e44d60ac4ae17cdce2a8597/transformed/object-detection-17.0.0/AndroidManifest.xml:7:5-79
+16-->[com.google.mlkit:object-detection:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/17a256eb5e44d60ac4ae17cdce2a8597/transformed/object-detection-17.0.0/AndroidManifest.xml:7:22-76
+17    <uses-permission android:name="android.permission.INTERNET" />
+17-->[com.google.mlkit:object-detection:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/17a256eb5e44d60ac4ae17cdce2a8597/transformed/object-detection-17.0.0/AndroidManifest.xml:8:5-67
+17-->[com.google.mlkit:object-detection:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/17a256eb5e44d60ac4ae17cdce2a8597/transformed/object-detection-17.0.0/AndroidManifest.xml:8:22-64
+18
+19    <permission
+19-->[androidx.core:core:1.12.0] /home/azzy/.gradle/caches/9.3.0/transforms/3756fdce7f14a70ac7afe6a9f94a6574/transformed/core-1.12.0/AndroidManifest.xml:22:5-24:47
+20        android:name="com.example.objectdetection.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+20-->[androidx.core:core:1.12.0] /home/azzy/.gradle/caches/9.3.0/transforms/3756fdce7f14a70ac7afe6a9f94a6574/transformed/core-1.12.0/AndroidManifest.xml:23:9-81
+21        android:protectionLevel="signature" />
+21-->[androidx.core:core:1.12.0] /home/azzy/.gradle/caches/9.3.0/transforms/3756fdce7f14a70ac7afe6a9f94a6574/transformed/core-1.12.0/AndroidManifest.xml:24:9-44
+22
+23    <uses-permission android:name="com.example.objectdetection.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+23-->[androidx.core:core:1.12.0] /home/azzy/.gradle/caches/9.3.0/transforms/3756fdce7f14a70ac7afe6a9f94a6574/transformed/core-1.12.0/AndroidManifest.xml:26:5-97
+23-->[androidx.core:core:1.12.0] /home/azzy/.gradle/caches/9.3.0/transforms/3756fdce7f14a70ac7afe6a9f94a6574/transformed/core-1.12.0/AndroidManifest.xml:26:22-94
+24
+25    <application
+25-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:7:5-21:19
+26        android:allowBackup="true"
+26-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:8:9-35
+27        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+27-->[androidx.core:core:1.12.0] /home/azzy/.gradle/caches/9.3.0/transforms/3756fdce7f14a70ac7afe6a9f94a6574/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
+28        android:debuggable="true"
+29        android:extractNativeLibs="false"
+30        android:label="Object Detector"
+30-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:9:9-40
+31        android:supportsRtl="true"
+31-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:10:9-35
+32        android:testOnly="true"
+33        android:theme="@style/Theme.ObjectDetection" >
+33-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:11:9-53
+34        <activity
+34-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:12:9-20:20
+35            android:name="com.example.objectdetection.MainActivity"
+35-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:13:13-41
+36            android:exported="true"
+36-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:14:13-36
+37            android:theme="@style/Theme.ObjectDetection" >
+37-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:15:13-57
+38            <intent-filter>
+38-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:16:13-19:29
+39                <action android:name="android.intent.action.MAIN" />
+39-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:17:17-69
+39-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:17:25-66
+40
+41                <category android:name="android.intent.category.LAUNCHER" />
+41-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:18:17-77
+41-->/home/azzy/shellhacks-2026/app/src/main/AndroidManifest.xml:18:27-74
+42            </intent-filter>
+43        </activity>
+44
+45        <service
+45-->[androidx.camera:camera-camera2:1.3.1] /home/azzy/.gradle/caches/9.3.0/transforms/dcb48c6d0de7d846c10635b78e021153/transformed/camera-camera2-1.3.1/AndroidManifest.xml:24:9-33:19
+46            android:name="androidx.camera.core.impl.MetadataHolderService"
+46-->[androidx.camera:camera-camera2:1.3.1] /home/azzy/.gradle/caches/9.3.0/transforms/dcb48c6d0de7d846c10635b78e021153/transformed/camera-camera2-1.3.1/AndroidManifest.xml:25:13-75
+47            android:enabled="false"
+47-->[androidx.camera:camera-camera2:1.3.1] /home/azzy/.gradle/caches/9.3.0/transforms/dcb48c6d0de7d846c10635b78e021153/transformed/camera-camera2-1.3.1/AndroidManifest.xml:26:13-36
+48            android:exported="false" >
+48-->[androidx.camera:camera-camera2:1.3.1] /home/azzy/.gradle/caches/9.3.0/transforms/dcb48c6d0de7d846c10635b78e021153/transformed/camera-camera2-1.3.1/AndroidManifest.xml:27:13-37
+49            <meta-data
+49-->[androidx.camera:camera-camera2:1.3.1] /home/azzy/.gradle/caches/9.3.0/transforms/dcb48c6d0de7d846c10635b78e021153/transformed/camera-camera2-1.3.1/AndroidManifest.xml:30:13-32:89
+50                android:name="androidx.camera.core.impl.MetadataHolderService.DEFAULT_CONFIG_PROVIDER"
+50-->[androidx.camera:camera-camera2:1.3.1] /home/azzy/.gradle/caches/9.3.0/transforms/dcb48c6d0de7d846c10635b78e021153/transformed/camera-camera2-1.3.1/AndroidManifest.xml:31:17-103
+51                android:value="androidx.camera.camera2.Camera2Config$DefaultProvider" />
+51-->[androidx.camera:camera-camera2:1.3.1] /home/azzy/.gradle/caches/9.3.0/transforms/dcb48c6d0de7d846c10635b78e021153/transformed/camera-camera2-1.3.1/AndroidManifest.xml:32:17-86
+52        </service>
+53        <service
+53-->[com.google.mlkit:object-detection:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/17a256eb5e44d60ac4ae17cdce2a8597/transformed/object-detection-17.0.0/AndroidManifest.xml:11:9-17:19
+54            android:name="com.google.mlkit.common.internal.MlKitComponentDiscoveryService"
+54-->[com.google.mlkit:object-detection:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/17a256eb5e44d60ac4ae17cdce2a8597/transformed/object-detection-17.0.0/AndroidManifest.xml:12:13-91
+55            android:directBootAware="true"
+55-->[com.google.mlkit:common:18.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/e9a4fd1cf4d744205e0c0d1250d80451/transformed/common-18.0.0/AndroidManifest.xml:17:13-43
+56            android:exported="false" >
+56-->[com.google.mlkit:object-detection:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/17a256eb5e44d60ac4ae17cdce2a8597/transformed/object-detection-17.0.0/AndroidManifest.xml:13:13-37
+57            <meta-data
+57-->[com.google.mlkit:object-detection:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/17a256eb5e44d60ac4ae17cdce2a8597/transformed/object-detection-17.0.0/AndroidManifest.xml:14:13-16:85
+58                android:name="com.google.firebase.components:com.google.mlkit.vision.objects.defaults.internal.DefaultObjectsRegistrar"
+58-->[com.google.mlkit:object-detection:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/17a256eb5e44d60ac4ae17cdce2a8597/transformed/object-detection-17.0.0/AndroidManifest.xml:15:17-136
+59                android:value="com.google.firebase.components.ComponentRegistrar" />
+59-->[com.google.mlkit:object-detection:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/17a256eb5e44d60ac4ae17cdce2a8597/transformed/object-detection-17.0.0/AndroidManifest.xml:16:17-82
+60            <meta-data
+60-->[com.google.mlkit:vision-internal-vkp:18.2.2] /home/azzy/.gradle/caches/9.3.0/transforms/d70fa93a5cc2b44755fbeb278f953107/transformed/vision-internal-vkp-18.2.2/AndroidManifest.xml:14:13-16:85
+61                android:name="com.google.firebase.components:com.google.mlkit.vision.vkp.VkpRegistrar"
+61-->[com.google.mlkit:vision-internal-vkp:18.2.2] /home/azzy/.gradle/caches/9.3.0/transforms/d70fa93a5cc2b44755fbeb278f953107/transformed/vision-internal-vkp-18.2.2/AndroidManifest.xml:15:17-103
+62                android:value="com.google.firebase.components.ComponentRegistrar" />
+62-->[com.google.mlkit:vision-internal-vkp:18.2.2] /home/azzy/.gradle/caches/9.3.0/transforms/d70fa93a5cc2b44755fbeb278f953107/transformed/vision-internal-vkp-18.2.2/AndroidManifest.xml:16:17-82
+63            <meta-data
+63-->[com.google.mlkit:vision-common:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/08a3de85d008477ba9ef270de31a8b8e/transformed/vision-common-17.0.0/AndroidManifest.xml:12:13-14:85
+64                android:name="com.google.firebase.components:com.google.mlkit.vision.common.internal.VisionCommonRegistrar"
+64-->[com.google.mlkit:vision-common:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/08a3de85d008477ba9ef270de31a8b8e/transformed/vision-common-17.0.0/AndroidManifest.xml:13:17-124
+65                android:value="com.google.firebase.components.ComponentRegistrar" />
+65-->[com.google.mlkit:vision-common:17.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/08a3de85d008477ba9ef270de31a8b8e/transformed/vision-common-17.0.0/AndroidManifest.xml:14:17-82
+66            <meta-data
+66-->[com.google.mlkit:common:18.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/e9a4fd1cf4d744205e0c0d1250d80451/transformed/common-18.0.0/AndroidManifest.xml:20:13-22:85
+67                android:name="com.google.firebase.components:com.google.mlkit.common.internal.CommonComponentRegistrar"
+67-->[com.google.mlkit:common:18.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/e9a4fd1cf4d744205e0c0d1250d80451/transformed/common-18.0.0/AndroidManifest.xml:21:17-120
+68                android:value="com.google.firebase.components.ComponentRegistrar" />
+68-->[com.google.mlkit:common:18.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/e9a4fd1cf4d744205e0c0d1250d80451/transformed/common-18.0.0/AndroidManifest.xml:22:17-82
+69        </service>
+70
+71        <provider
+71-->[com.google.mlkit:common:18.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/e9a4fd1cf4d744205e0c0d1250d80451/transformed/common-18.0.0/AndroidManifest.xml:9:9-13:38
+72            android:name="com.google.mlkit.common.internal.MlKitInitProvider"
+72-->[com.google.mlkit:common:18.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/e9a4fd1cf4d744205e0c0d1250d80451/transformed/common-18.0.0/AndroidManifest.xml:10:13-78
+73            android:authorities="com.example.objectdetection.mlkitinitprovider"
+73-->[com.google.mlkit:common:18.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/e9a4fd1cf4d744205e0c0d1250d80451/transformed/common-18.0.0/AndroidManifest.xml:11:13-69
+74            android:exported="false"
+74-->[com.google.mlkit:common:18.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/e9a4fd1cf4d744205e0c0d1250d80451/transformed/common-18.0.0/AndroidManifest.xml:12:13-37
+75            android:initOrder="99" />
+75-->[com.google.mlkit:common:18.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/e9a4fd1cf4d744205e0c0d1250d80451/transformed/common-18.0.0/AndroidManifest.xml:13:13-35
+76
+77        <activity
+77-->[com.google.android.gms:play-services-base:18.0.1] /home/azzy/.gradle/caches/9.3.0/transforms/31867039c19455c9771aa3aba68288b3/transformed/play-services-base-18.0.1/AndroidManifest.xml:20:9-22:45
+78            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+78-->[com.google.android.gms:play-services-base:18.0.1] /home/azzy/.gradle/caches/9.3.0/transforms/31867039c19455c9771aa3aba68288b3/transformed/play-services-base-18.0.1/AndroidManifest.xml:20:19-85
+79            android:exported="false"
+79-->[com.google.android.gms:play-services-base:18.0.1] /home/azzy/.gradle/caches/9.3.0/transforms/31867039c19455c9771aa3aba68288b3/transformed/play-services-base-18.0.1/AndroidManifest.xml:22:19-43
+80            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+80-->[com.google.android.gms:play-services-base:18.0.1] /home/azzy/.gradle/caches/9.3.0/transforms/31867039c19455c9771aa3aba68288b3/transformed/play-services-base-18.0.1/AndroidManifest.xml:21:19-78
+81
+82        <meta-data
+82-->[com.google.android.gms:play-services-basement:18.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/ae0a04efd50c29535ae4f83deb457eca/transformed/play-services-basement-18.0.0/AndroidManifest.xml:21:9-23:69
+83            android:name="com.google.android.gms.version"
+83-->[com.google.android.gms:play-services-basement:18.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/ae0a04efd50c29535ae4f83deb457eca/transformed/play-services-basement-18.0.0/AndroidManifest.xml:22:13-58
+84            android:value="@integer/google_play_services_version" />
+84-->[com.google.android.gms:play-services-basement:18.0.0] /home/azzy/.gradle/caches/9.3.0/transforms/ae0a04efd50c29535ae4f83deb457eca/transformed/play-services-basement-18.0.0/AndroidManifest.xml:23:13-66
+85
+86        <activity
+86-->[androidx.compose.ui:ui-test-manifest:1.5.4] /home/azzy/.gradle/caches/9.3.0/transforms/4d1d70f7b561c83612f41432d3061800/transformed/ui-test-manifest-1.5.4/AndroidManifest.xml:23:9-25:39
+87            android:name="androidx.activity.ComponentActivity"
+87-->[androidx.compose.ui:ui-test-manifest:1.5.4] /home/azzy/.gradle/caches/9.3.0/transforms/4d1d70f7b561c83612f41432d3061800/transformed/ui-test-manifest-1.5.4/AndroidManifest.xml:24:13-63
+88            android:exported="true" />
+88-->[androidx.compose.ui:ui-test-manifest:1.5.4] /home/azzy/.gradle/caches/9.3.0/transforms/4d1d70f7b561c83612f41432d3061800/transformed/ui-test-manifest-1.5.4/AndroidManifest.xml:25:13-36
+89        <activity
+89-->[androidx.compose.ui:ui-tooling-android:1.5.4] /home/azzy/.gradle/caches/9.3.0/transforms/495f46b3c8ce70aa770aa1cb85c82753/transformed/ui-tooling-release/AndroidManifest.xml:23:9-25:39
+90            android:name="androidx.compose.ui.tooling.PreviewActivity"
+90-->[androidx.compose.ui:ui-tooling-android:1.5.4] /home/azzy/.gradle/caches/9.3.0/transforms/495f46b3c8ce70aa770aa1cb85c82753/transformed/ui-tooling-release/AndroidManifest.xml:24:13-71
+91            android:exported="true" />
+91-->[androidx.compose.ui:ui-tooling-android:1.5.4] /home/azzy/.gradle/caches/9.3.0/transforms/495f46b3c8ce70aa770aa1cb85c82753/transformed/ui-tooling-release/AndroidManifest.xml:25:13-36
+92
+93        <provider
+93-->[androidx.emoji2:emoji2:1.4.0] /home/azzy/.gradle/caches/9.3.0/transforms/18da5276ac917abb7bb830f8a0c0ce26/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
+94            android:name="androidx.startup.InitializationProvider"
+94-->[androidx.emoji2:emoji2:1.4.0] /home/azzy/.gradle/caches/9.3.0/transforms/18da5276ac917abb7bb830f8a0c0ce26/transformed/emoji2-1.4.0/AndroidManifest.xml:25:13-67
+95            android:authorities="com.example.objectdetection.androidx-startup"
+95-->[androidx.emoji2:emoji2:1.4.0] /home/azzy/.gradle/caches/9.3.0/transforms/18da5276ac917abb7bb830f8a0c0ce26/transformed/emoji2-1.4.0/AndroidManifest.xml:26:13-68
+96            android:exported="false" >
+96-->[androidx.emoji2:emoji2:1.4.0] /home/azzy/.gradle/caches/9.3.0/transforms/18da5276ac917abb7bb830f8a0c0ce26/transformed/emoji2-1.4.0/AndroidManifest.xml:27:13-37
+97            <meta-data
+97-->[androidx.emoji2:emoji2:1.4.0] /home/azzy/.gradle/caches/9.3.0/transforms/18da5276ac917abb7bb830f8a0c0ce26/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
+98                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+98-->[androidx.emoji2:emoji2:1.4.0] /home/azzy/.gradle/caches/9.3.0/transforms/18da5276ac917abb7bb830f8a0c0ce26/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
+99                android:value="androidx.startup" />
+99-->[androidx.emoji2:emoji2:1.4.0] /home/azzy/.gradle/caches/9.3.0/transforms/18da5276ac917abb7bb830f8a0c0ce26/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
+100            <meta-data
+100-->[androidx.lifecycle:lifecycle-process:2.7.0] /home/azzy/.gradle/caches/9.3.0/transforms/a5f7cf618bdb5e11179631b7be5d6e30/transformed/lifecycle-process-2.7.0/AndroidManifest.xml:29:13-31:52
+101                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+101-->[androidx.lifecycle:lifecycle-process:2.7.0] /home/azzy/.gradle/caches/9.3.0/transforms/a5f7cf618bdb5e11179631b7be5d6e30/transformed/lifecycle-process-2.7.0/AndroidManifest.xml:30:17-78
+102                android:value="androidx.startup" />
+102-->[androidx.lifecycle:lifecycle-process:2.7.0] /home/azzy/.gradle/caches/9.3.0/transforms/a5f7cf618bdb5e11179631b7be5d6e30/transformed/lifecycle-process-2.7.0/AndroidManifest.xml:31:17-49
+103            <meta-data
+103-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:29:13-31:52
+104                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+104-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:30:17-85
+105                android:value="androidx.startup" />
+105-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:31:17-49
+106        </provider>
+107
+108        <service
+108-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /home/azzy/.gradle/caches/9.3.0/transforms/a68b1f3c9ee4cdf6a3624d5414ef92b6/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:29:9-35:19
+109            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+109-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /home/azzy/.gradle/caches/9.3.0/transforms/a68b1f3c9ee4cdf6a3624d5414ef92b6/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:30:13-103
+110            android:exported="false" >
+110-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /home/azzy/.gradle/caches/9.3.0/transforms/a68b1f3c9ee4cdf6a3624d5414ef92b6/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:31:13-37
+111            <meta-data
+111-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /home/azzy/.gradle/caches/9.3.0/transforms/a68b1f3c9ee4cdf6a3624d5414ef92b6/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:32:13-34:39
+112                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+112-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /home/azzy/.gradle/caches/9.3.0/transforms/a68b1f3c9ee4cdf6a3624d5414ef92b6/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:33:17-94
+113                android:value="cct" />
+113-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /home/azzy/.gradle/caches/9.3.0/transforms/a68b1f3c9ee4cdf6a3624d5414ef92b6/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:34:17-36
+114        </service>
+115        <service
+115-->[com.google.android.datatransport:transport-runtime:2.2.6] /home/azzy/.gradle/caches/9.3.0/transforms/32fccb0b414ca4513de83e6e541738ab/transformed/transport-runtime-2.2.6/AndroidManifest.xml:26:9-30:19
+116            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
+116-->[com.google.android.datatransport:transport-runtime:2.2.6] /home/azzy/.gradle/caches/9.3.0/transforms/32fccb0b414ca4513de83e6e541738ab/transformed/transport-runtime-2.2.6/AndroidManifest.xml:27:13-117
+117            android:exported="false"
+117-->[com.google.android.datatransport:transport-runtime:2.2.6] /home/azzy/.gradle/caches/9.3.0/transforms/32fccb0b414ca4513de83e6e541738ab/transformed/transport-runtime-2.2.6/AndroidManifest.xml:28:13-37
+118            android:permission="android.permission.BIND_JOB_SERVICE" >
+118-->[com.google.android.datatransport:transport-runtime:2.2.6] /home/azzy/.gradle/caches/9.3.0/transforms/32fccb0b414ca4513de83e6e541738ab/transformed/transport-runtime-2.2.6/AndroidManifest.xml:29:13-69
+119        </service>
+120
+121        <receiver
+121-->[com.google.android.datatransport:transport-runtime:2.2.6] /home/azzy/.gradle/caches/9.3.0/transforms/32fccb0b414ca4513de83e6e541738ab/transformed/transport-runtime-2.2.6/AndroidManifest.xml:32:9-34:40
+122            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
+122-->[com.google.android.datatransport:transport-runtime:2.2.6] /home/azzy/.gradle/caches/9.3.0/transforms/32fccb0b414ca4513de83e6e541738ab/transformed/transport-runtime-2.2.6/AndroidManifest.xml:33:13-132
+123            android:exported="false" />
+123-->[com.google.android.datatransport:transport-runtime:2.2.6] /home/azzy/.gradle/caches/9.3.0/transforms/32fccb0b414ca4513de83e6e541738ab/transformed/transport-runtime-2.2.6/AndroidManifest.xml:34:13-37
+124        <receiver
+124-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:34:9-52:20
+125            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+125-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:35:13-76
+126            android:directBootAware="false"
+126-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:36:13-44
+127            android:enabled="true"
+127-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:37:13-35
+128            android:exported="true"
+128-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:38:13-36
+129            android:permission="android.permission.DUMP" >
+129-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:39:13-57
+130            <intent-filter>
+130-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:40:13-42:29
+131                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+131-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:41:17-91
+131-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:41:25-88
+132            </intent-filter>
+133            <intent-filter>
+133-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:43:13-45:29
+134                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+134-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:44:17-85
+134-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:44:25-82
+135            </intent-filter>
+136            <intent-filter>
+136-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:46:13-48:29
+137                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+137-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:47:17-88
+137-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:47:25-85
+138            </intent-filter>
+139            <intent-filter>
+139-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:49:13-51:29
+140                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+140-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:50:17-95
+140-->[androidx.profileinstaller:profileinstaller:1.3.0] /home/azzy/.gradle/caches/9.3.0/transforms/e4d6268443ab7045bde756d60f028d5e/transformed/profileinstaller-1.3.0/AndroidManifest.xml:50:25-92
+141            </intent-filter>
+142        </receiver>
+143    </application>
+144
+145</manifest>
