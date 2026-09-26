@@ -125,7 +125,7 @@ class GeminiInferenceManager(
 
   companion object {
     private const val TAG = "GeminiInferenceManager"
-    private const val MIN_CALL_INTERVAL_MS = 10000L // 10 seconds minimum between periodic calls
+    private const val MIN_CALL_INTERVAL_MS = 5000L // 10 seconds minimum between periodic calls
     private const val MAX_RECENT_OUTPUTS = 3
   }
 }
