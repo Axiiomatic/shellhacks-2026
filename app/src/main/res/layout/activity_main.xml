@@ -80,7 +80,7 @@
 
     </LinearLayout>
 
-    <!-- Bottom Sliding Card Overlay (Collapsible & Expandable Up/Down) -->
+    <!-- Bottom Sliding Card Overlay (Draggable Up & Down) -->
     <LinearLayout
         android:id="@+id/control_sheet"
         android:layout_width="match_parent"
@@ -95,16 +95,16 @@
         android:animateLayoutChanges="true"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- Drag Handle Indicator -->
+        <!-- Draggable Handle Indicator -->
         <View
             android:id="@+id/drag_handle"
-            android:layout_width="40dp"
-            android:layout_height="4dp"
+            android:layout_width="50dp"
+            android:layout_height="5dp"
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="12dp"
             android:background="@color/accessible_outline" />
 
-        <!-- Clickable Header to Slide Card Up and Down -->
+        <!-- Draggable Header Bar -->
         <LinearLayout
             android:id="@+id/header_layout"
             android:layout_width="match_parent"
@@ -117,21 +117,11 @@
             android:layout_marginBottom="12dp">
 
             <TextView
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:text="@string/quick_controls_title"
                 android:textColor="@color/white"
                 android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/slide_hint"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/slide_hint_down"
-                android:textColor="@color/accessible_gold"
-                android:textSize="12sp"
                 android:textStyle="bold" />
         </LinearLayout>
 

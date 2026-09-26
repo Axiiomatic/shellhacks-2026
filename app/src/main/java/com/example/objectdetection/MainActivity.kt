@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -14,6 +15,7 @@ import com.example.objectdetection.databinding.ActivityMainBinding
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 import org.opencv.android.OpenCVLoader
 import java.io.IOException
+import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
 
@@ -82,14 +84,51 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun setupBottomCardToggle() {
-    binding.headerLayout.setOnClickListener { view ->
-      view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-      isControlsExpanded = !isControlsExpanded
-      binding.scrollView.visibility = if (isControlsExpanded) View.VISIBLE else View.GONE
-      binding.slideHint.text = if (isControlsExpanded) getString(R.string.slide_hint_down) else getString(R.string.slide_hint_up)
-      val cd = if (isControlsExpanded) "Quick controls expanded" else "Quick controls collapsed"
-      view.announceForAccessibility(cd)
+    var startY = 0f
+    val touchListener = View.OnTouchListener { view, event ->
+      when (event.action) {
+        MotionEvent.ACTION_DOWN -> {
+          startY = event.rawY
+          true
+        }
+        MotionEvent.ACTION_UP -> {
+          val deltaY = event.rawY - startY
+          val swipeThreshold = 35f
+          view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+          view.performClick()
+          if (abs(deltaY) > swipeThreshold) {
+            if (deltaY > 0) {
+              // Swiped down -> collapse fully down
+              collapseCard()
+            } else {
+              // Swiped up -> expand fully up
+              expandCard()
+            }
+          } else {
+            // Tap -> toggle fully up / fully down
+            if (isControlsExpanded) collapseCard() else expandCard()
+          }
+          true
+        }
+        else -> false
+      }
     }
+
+    binding.headerLayout.setOnTouchListener(touchListener)
+    binding.dragHandle.setOnTouchListener(touchListener)
+  }
+
+  private fun expandCard() {
+    isControlsExpanded = true
+    binding.scrollView.visibility = View.VISIBLE
+    binding.controlSheet.animate().translationY(0f).setDuration(200).start()
+    binding.headerLayout.announceForAccessibility("Quick controls expanded")
+  }
+
+  private fun collapseCard() {
+    isControlsExpanded = false
+    binding.scrollView.visibility = View.GONE
+    binding.headerLayout.announceForAccessibility("Quick controls collapsed")
   }
 
   private fun updateAudioToggleButton() {
