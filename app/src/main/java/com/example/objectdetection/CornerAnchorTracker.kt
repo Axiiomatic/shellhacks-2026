@@ -22,7 +22,9 @@ data class AnchorTrackingResult(
   val anchorScaleGrowth: Float,
   val validPointCount: Int,
   val confidence: Float,
-  val trackedCorners: List<Point> = emptyList()
+  val trackedCorners: List<Point> = emptyList(),
+  val anchorDisplacementX: Float = 0f,
+  val anchorDisplacementY: Float = 0f
 )
 
 /**
@@ -93,12 +95,13 @@ class CornerAnchorTracker {
 
     // Perform Pyramidal Lucas-Kanade Optical Flow from prevMat to currGrayMat
     val prevMat = state.prevMat!!
-    val (trackedPrevPts, trackedCurrPts) = trackOpticalFlow(
+    val (rawPrevPts, rawCurrPts) = trackOpticalFlow(
       prevMat = prevMat,
       currMat = currGrayMat,
       prevCorners = state.prevCorners,
       roiBounds = CvRect(left, top, roiWidth, roiHeight)
     )
+    val (trackedPrevPts, trackedCurrPts) = filterInconsistentTracks(rawPrevPts, rawCurrPts)
 
     val validCount = trackedCurrPts.size
     if (validCount < MIN_POINTS_TO_TRACK) {
@@ -134,6 +137,8 @@ class CornerAnchorTracker {
 
     // Calculate Radial Expansion relative to centroid
     val currCentroid = calculateCentroid(trackedCurrPts)
+    val anchorDisplacementX = (currCentroid.x - state.prevCentroid.x).toFloat()
+    val anchorDisplacementY = (currCentroid.y - state.prevCentroid.y).toFloat()
     val radialExpansionRatios = mutableListOf<Float>()
     for (k in 0 until ptCount) {
       val prevRad = distance(trackedPrevPts[k], state.prevCentroid)
@@ -163,7 +168,9 @@ class CornerAnchorTracker {
       anchorScaleGrowth = medianScaleGrowth,
       validPointCount = validCount,
       confidence = confidence,
-      trackedCorners = trackedCurrPts
+      trackedCorners = trackedCurrPts,
+      anchorDisplacementX = anchorDisplacementX,
+      anchorDisplacementY = anchorDisplacementY
     )
   }
 
@@ -270,6 +277,48 @@ class CornerAnchorTracker {
       statusMat.release()
       errMat.release()
     }
+  }
+
+  private fun filterInconsistentTracks(
+    previousPoints: List<Point>,
+    currentPoints: List<Point>
+  ): Pair<List<Point>, List<Point>> {
+    if (previousPoints.size < MIN_POINTS_TO_TRACK + 1 || previousPoints.size != currentPoints.size) {
+      return Pair(previousPoints, currentPoints)
+    }
+
+    val displacements = previousPoints.indices.map { index ->
+      Point(
+        currentPoints[index].x - previousPoints[index].x,
+        currentPoints[index].y - previousPoints[index].y
+      )
+    }
+    val medianDx = median(displacements.map { it.x })
+    val medianDy = median(displacements.map { it.y })
+    val residuals = displacements.map { displacement ->
+      sqrt(
+        (displacement.x - medianDx) * (displacement.x - medianDx) +
+            (displacement.y - medianDy) * (displacement.y - medianDy)
+      )
+    }
+    val medianResidual = median(residuals)
+    val residualThreshold = max(18.0, medianResidual * 3.0 + 8.0)
+
+    val consistentIndices = residuals.indices.filter { residuals[it] <= residualThreshold }
+    if (consistentIndices.size < MIN_POINTS_TO_TRACK) {
+      return Pair(previousPoints, currentPoints)
+    }
+
+    return Pair(
+      consistentIndices.map { previousPoints[it] },
+      consistentIndices.map { currentPoints[it] }
+    )
+  }
+
+  private fun median(values: List<Double>): Double {
+    if (values.isEmpty()) return 0.0
+    val sortedValues = values.sorted()
+    return sortedValues[sortedValues.size / 2]
   }
 
   private fun calculateCentroid(points: List<Point>): Point {

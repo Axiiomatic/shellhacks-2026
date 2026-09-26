@@ -2,6 +2,7 @@ package com.example.objectdetection
 
 import com.google.mlkit.vision.objects.DetectedObject
 import org.opencv.core.Mat
+import org.opencv.core.Point
 import java.util.IdentityHashMap
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -21,6 +22,7 @@ data class ObjectTrackInfo(
   val displacementX: Float,
   val displacementY: Float,
   val isMoving: Boolean,
+  val trackedCorners: List<Point> = emptyList(),
 )
 
 /**
@@ -155,35 +157,25 @@ class MotionTracker {
           continue
         }
 
-        // Calculate Displacement in frame pixel space
-        val dx = centerX - state.lastCenterX
-        val dy = centerY - state.lastCenterY
-        val distPx = sqrt(dx * dx + dy * dy)
-
-        // Normalize displacement relative to frame diagonal size
-        val normalizedDist = distPx / frameDiagonalPx
-        val instRelativeSpeed = normalizedDist / dtSec
-
-        // Calculate Bounding Box Diagonal Scale Growth Rate & Screen Fraction
-        val currentDiagonal = sqrt(boxWidth * boxWidth + boxHeight * boxHeight)
-        val prevDiagonal = max(sqrt(state.lastWidth * state.lastWidth + state.lastHeight * state.lastHeight), 1.0f)
-        val instBoxScaleGrowth = ((currentDiagonal - prevDiagonal) / prevDiagonal) / dtSec
-        val screenFraction = currentDiagonal / frameDiagonalPx
-
-        // Track corner & landmark anchor points via OpenCV Optical Flow
+        // Track object motion from optical-flow anchor points when available.
         val anchorResult = cornerAnchorTracker.trackObjectAnchors(
           objectId = id,
           box = box,
           currGrayMat = currGrayMat,
           dtSec = dtSec
         )
+        val hasReliableAnchors = anchorResult.validPointCount >= 3 && anchorResult.confidence > 0.2f
 
-        // Prioritize Anchor Point scale growth (85% weight) over raw Bounding Box growth (15% weight)
-        val effectiveScaleGrowth = if (anchorResult.validPointCount >= 3 && anchorResult.confidence > 0.2f) {
-          0.85f * anchorResult.anchorScaleGrowth + 0.15f * instBoxScaleGrowth
-        } else {
-          instBoxScaleGrowth
-        }
+        val dx = if (hasReliableAnchors) anchorResult.anchorDisplacementX else 0f
+        val dy = if (hasReliableAnchors) anchorResult.anchorDisplacementY else 0f
+        val distPx = sqrt(dx * dx + dy * dy)
+
+        // Normalize displacement relative to frame diagonal size
+        val normalizedDist = distPx / frameDiagonalPx
+        val instRelativeSpeed = normalizedDist / dtSec
+
+        // Bounding-box growth is intentionally not used as a depth signal.
+        val effectiveScaleGrowth = if (hasReliableAnchors) anchorResult.anchorScaleGrowth else 0f
 
         // Apply EMA filter
         val smoothedDx = motionAlpha * dx + (1f - motionAlpha) * state.smoothedDx
@@ -201,22 +193,13 @@ class MotionTracker {
         val estimatedTtc = if (smoothedScaleGrowth > 0.05f) 1.0f / smoothedScaleGrowth else Float.MAX_VALUE
         val isImminentTtc = estimatedTtc <= MAX_TTC_SECONDS
 
-        // 2. Close Proximity Requirement
-        // Object must occupy a significant portion of the frame (close to camera):
-        // Screen fraction >= 38% OR Box Width >= 45% of frame width OR Box Height >= 50% of frame height
-        val normBoxWidth = boxWidth / safeWidth
-        val normBoxHeight = boxHeight / safeHeight
-        val isCloseProximity = screenFraction >= MIN_SCREEN_FRACTION_FOR_COLLISION ||
-            normBoxWidth >= MIN_BOX_WIDTH_FRACTION ||
-            normBoxHeight >= MIN_BOX_HEIGHT_FRACTION
-
-        // 3. Directional Collision Path (supports head-on AND angled approaches)
+        // 2. Directional Collision Path (supports head-on AND angled approaches)
         // Object must extend into the forward path corridor [0.20, 0.80]
         val normLeft = box.left / safeWidth
         val normRight = box.right / safeWidth
         val isInCollisionPath = normLeft <= PATH_CORRIDOR_X_MAX && normRight >= PATH_CORRIDOR_X_MIN
 
-        // 4. Expansion-to-Motion Ratio
+        // 3. Expansion-to-Motion Ratio
         // Permits angled approaches (where both expansion and lateral movement occur),
         // but filters out pure camera sweeps / lateral pans across the room (where lateral speed is high, scale expansion is tiny)
         val expansionToMotionRatio = if (smoothedRelativeSpeed > 0.05f) {
@@ -228,7 +211,6 @@ class MotionTracker {
 
         val isExpandingRapidly = isRapidScaleGrowth &&
             isImminentTtc &&
-            isCloseProximity &&
             isInCollisionPath &&
             isApproachMotion
 
@@ -270,7 +252,8 @@ class MotionTracker {
           motionLabel = motionLabel,
           displacementX = smoothedDx,
           displacementY = smoothedDy,
-          isMoving = isMoving
+          isMoving = isMoving,
+          trackedCorners = anchorResult.trackedCorners
         )
       }
     }
@@ -362,9 +345,6 @@ class MotionTracker {
     private const val STALE_THRESHOLD_MS = 1200L
     const val RAPID_APPROACH_THRESHOLD = 0.42f // 42%/s scale growth rate required for imminent bump
     const val MAX_TTC_SECONDS = 2.0f // Estimated Time-To-Collision must be <= 2.0 seconds
-    const val MIN_SCREEN_FRACTION_FOR_COLLISION = 0.38f // Object occupies >= 38% frame diagonal
-    const val MIN_BOX_WIDTH_FRACTION = 0.45f // Or object width occupies >= 45% frame width
-    const val MIN_BOX_HEIGHT_FRACTION = 0.50f // Or object height occupies >= 50% frame height
     const val PATH_CORRIDOR_X_MIN = 0.20f // Collision path corridor starts at 20% width
     const val PATH_CORRIDOR_X_MAX = 0.80f // Collision path corridor ends at 80% width
     const val MIN_EXPANSION_TO_MOTION_RATIO = 0.35f // Minimum expansion-to-lateral-speed ratio

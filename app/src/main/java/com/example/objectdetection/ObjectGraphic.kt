@@ -61,6 +61,12 @@ class ObjectGraphic(
     isAntiAlias = true
   }
 
+  private val anchorPointPaint = Paint().apply {
+    color = Color.GREEN
+    style = Paint.Style.FILL
+    isAntiAlias = true
+  }
+
   init {
     for (i in 0 until numColors) {
       textPaints[i] = Paint().apply {
@@ -101,6 +107,7 @@ class ObjectGraphic(
     rect.top = translateY(rect.top)
     rect.bottom = translateY(rect.bottom)
     canvas.drawRect(rect, boxPaintToUse)
+    drawTrackedAnchors(canvas)
 
     // Build text lines
     val lines = mutableListOf<String>()
@@ -145,6 +152,20 @@ class ObjectGraphic(
     // Draw Motion Vector Arrow if object is moving
     if (trackInfo != null && trackInfo.isMoving) {
       drawMotionVectorArrow(canvas, rect)
+    }
+  }
+
+  private fun drawTrackedAnchors(canvas: Canvas) {
+    val corners = trackInfo?.trackedCorners ?: return
+    val colorID = if (detectedObject.trackingId == null) 0
+      else abs(detectedObject.trackingId!! % numColors)
+    anchorPointPaint.color = if (trackInfo?.isRapidApproaching == true) {
+      Color.RED
+    } else {
+      COLORS[colorID][1]
+    }
+    for (point in corners) {
+      canvas.drawCircle(translateX(point.x.toFloat()), translateY(point.y.toFloat()), 10.0f, anchorPointPaint)
     }
   }
 
