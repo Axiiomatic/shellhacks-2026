@@ -10,11 +10,12 @@ import com.google.mlkit.vision.objects.ObjectDetector
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 import java.io.IOException
 
-/** A processor to run object detector. */
+/** A processor to run object detector with normalized relative motion tracking. */
 class ObjectDetectorProcessor(context: Context, options: ObjectDetectorOptions) :
   VisionProcessorBase<List<DetectedObject>>(context) {
 
   private val detector: ObjectDetector = ObjectDetection.getClient(options)
+  private val motionTracker = MotionTracker()
 
   override fun stop() {
     super.stop()
@@ -30,8 +31,15 @@ class ObjectDetectorProcessor(context: Context, options: ObjectDetectorOptions) 
   }
 
   override fun onSuccess(results: List<DetectedObject>, graphicOverlay: GraphicOverlay) {
+    val trackInfoMap = motionTracker.processFrame(
+      detectedObjects = results,
+      frameWidth = graphicOverlay.imageWidth,
+      frameHeight = graphicOverlay.imageHeight
+    )
+
     for (result in results) {
-      graphicOverlay.add(ObjectGraphic(graphicOverlay, result))
+      val trackInfo = trackInfoMap[result]
+      graphicOverlay.add(ObjectGraphic(graphicOverlay, result, trackInfo))
     }
   }
 

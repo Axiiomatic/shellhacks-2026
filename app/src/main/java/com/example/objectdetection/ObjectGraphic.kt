@@ -3,17 +3,23 @@ package com.example.objectdetection
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import com.example.objectdetection.GraphicOverlay.Graphic
 import com.google.mlkit.vision.objects.DetectedObject
 import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sin
+import kotlin.math.sqrt
 
-/** Draw the detected object bounding box in preview. */
+/** Draw the detected object bounding box and normalized relative motion info in preview. */
 class ObjectGraphic(
   overlay: GraphicOverlay,
-  private val detectedObject: DetectedObject
+  private val detectedObject: DetectedObject,
+  private val trackInfo: ObjectTrackInfo? = null
 ) : Graphic(overlay) {
 
   private val numColors = COLORS.size
@@ -22,20 +28,37 @@ class ObjectGraphic(
   private val textPaints = Array(numColors) { Paint() }
   private val labelPaints = Array(numColors) { Paint() }
 
+  private val vectorPaint = Paint().apply {
+    color = Color.CYAN
+    style = Paint.Style.STROKE
+    strokeWidth = 8.0f
+    strokeCap = Paint.Cap.ROUND
+    isAntiAlias = true
+  }
+
+  private val arrowheadPaint = Paint().apply {
+    color = Color.CYAN
+    style = Paint.Style.FILL
+    isAntiAlias = true
+  }
+
   init {
     for (i in 0 until numColors) {
       textPaints[i] = Paint().apply {
         color = COLORS[i][0]
         textSize = TEXT_SIZE
+        isAntiAlias = true
       }
       boxPaints[i] = Paint().apply {
         color = COLORS[i][1]
         style = Paint.Style.STROKE
         strokeWidth = STROKE_WIDTH
+        isAntiAlias = true
       }
       labelPaints[i] = Paint().apply {
         color = COLORS[i][1]
         style = Paint.Style.FILL
+        isAntiAlias = true
       }
     }
   }
@@ -54,31 +77,100 @@ class ObjectGraphic(
     rect.bottom = translateY(rect.bottom)
     canvas.drawRect(rect, boxPaints[colorID])
 
-    // Draws object tracking ID if present
-    if (detectedObject.trackingId != null) {
-      val text = "ID: ${detectedObject.trackingId}"
-      val textWidth = textPaints[colorID].measureText(text)
-      val lineHeight = TEXT_SIZE + STROKE_WIDTH
-      val yLabelOffset = -lineHeight
+    // Build text lines
+    val lines = mutableListOf<String>()
 
-      canvas.drawRect(
-        rect.left - STROKE_WIDTH,
-        rect.top + yLabelOffset,
-        rect.left + textWidth + 2 * STROKE_WIDTH,
-        rect.top,
-        labelPaints[colorID]
-      )
+    val idStr = if (detectedObject.trackingId != null) "ID: ${detectedObject.trackingId}" else "ID: N/A"
+    lines.add(idStr)
+
+    if (trackInfo != null) {
+      lines.add("Motion: ${trackInfo.motionLabel}")
+    }
+
+    // Draw multi-line text header above bounding box
+    val lineHeight = TEXT_SIZE + 6.0f
+    val totalHeight = lines.size * lineHeight
+    var maxTextWidth = 0.0f
+    for (line in lines) {
+      val w = textPaints[colorID].measureText(line)
+      if (w > maxTextWidth) {
+        maxTextWidth = w
+      }
+    }
+
+    val backgroundRect = RectF(
+      rect.left - STROKE_WIDTH,
+      rect.top - totalHeight - 2 * STROKE_WIDTH,
+      rect.left + maxTextWidth + 3 * STROKE_WIDTH,
+      rect.top
+    )
+    canvas.drawRect(backgroundRect, labelPaints[colorID])
+
+    var currentY = rect.top - totalHeight + TEXT_SIZE - 2.0f
+    for (line in lines) {
       canvas.drawText(
-        text,
-        rect.left,
-        rect.top - STROKE_WIDTH,
+        line,
+        rect.left + STROKE_WIDTH,
+        currentY,
         textPaints[colorID]
       )
+      currentY += lineHeight
+    }
+
+    // Draw Motion Vector Arrow if object is moving
+    if (trackInfo != null && trackInfo.isMoving) {
+      drawMotionVectorArrow(canvas, rect)
     }
   }
 
+  private fun drawMotionVectorArrow(canvas: Canvas, rect: RectF) {
+    if (trackInfo == null) return
+
+    val centerX = rect.centerX()
+    val centerY = rect.centerY()
+
+    // Convert displacement from frame space to screen space
+    val rawDx = trackInfo.displacementX
+    val rawDy = trackInfo.displacementY
+
+    val screenDx = if (isImageFlipped()) -scale(rawDx) else scale(rawDx)
+    val screenDy = scale(rawDy)
+
+    val mag = sqrt(screenDx * screenDx + screenDy * screenDy)
+    if (mag < 1.0f) return
+
+    // Scale vector length based on relative speed for visual clarity
+    val targetLength = max(30.0f, min(mag * 2.5f, 130.0f))
+    val dirX = screenDx / mag
+    val dirY = screenDy / mag
+
+    val endX = centerX + dirX * targetLength
+    val endY = centerY + dirY * targetLength
+
+    // Draw vector shaft line
+    canvas.drawLine(centerX, centerY, endX, endY, vectorPaint)
+
+    // Draw arrowhead at (endX, endY)
+    val angle = atan2(dirY.toDouble(), dirX.toDouble())
+    val arrowHeadSize = 20.0f
+
+    val path = Path().apply {
+      moveTo(endX, endY)
+      lineTo(
+        (endX - arrowHeadSize * cos(angle - Math.PI / 6)).toFloat(),
+        (endY - arrowHeadSize * sin(angle - Math.PI / 6)).toFloat()
+      )
+      lineTo(
+        (endX - arrowHeadSize * cos(angle + Math.PI / 6)).toFloat(),
+        (endY - arrowHeadSize * sin(angle + Math.PI / 6)).toFloat()
+      )
+      close()
+    }
+    canvas.drawPath(path, arrowheadPaint)
+  }
+
   companion object {
-    private const val TEXT_SIZE = 40.0f
+    private const val TEXT_SIZE = 36.0f
     private const val STROKE_WIDTH = 6.0f
     private val COLORS =
       arrayOf(

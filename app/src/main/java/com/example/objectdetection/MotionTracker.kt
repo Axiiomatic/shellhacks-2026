@@ -1,0 +1,277 @@
+package com.example.objectdetection
+
+import com.google.mlkit.vision.objects.DetectedObject
+import java.util.IdentityHashMap
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.max
+import kotlin.math.sqrt
+
+/**
+ * Data class holding normalized relative motion tracking results for a detected object.
+ */
+data class ObjectTrackInfo(
+  val trackingId: Int?,
+  val relativeSpeed: Float,
+  val motionDirection: MotionDirection,
+  val motionLabel: String,
+  val displacementX: Float,
+  val displacementY: Float,
+  val isMoving: Boolean,
+)
+
+/**
+ * Enum representing possible motion directions.
+ */
+enum class MotionDirection {
+  STATIONARY,
+  APPROACHING,
+  RECEDING,
+  LEFT,
+  RIGHT,
+  UP,
+  DOWN,
+  UP_LEFT,
+  UP_RIGHT,
+  DOWN_LEFT,
+  DOWN_RIGHT,
+}
+
+/**
+ * Tracker that calculates real-time normalized relative motion for detected objects.
+ */
+class MotionTracker {
+
+  private data class TrackedObjectState(
+    val trackingId: Int?,
+    var lastCenterX: Float,
+    var lastCenterY: Float,
+    var lastWidth: Float,
+    var lastHeight: Float,
+    var lastTimestampMs: Long,
+    var smoothedRelativeSpeed: Float,
+    var smoothedDx: Float,
+    var smoothedDy: Float,
+    var lastMotionDirection: MotionDirection = MotionDirection.STATIONARY,
+  )
+
+  private val trackedObjects = mutableMapOf<Int, TrackedObjectState>()
+  private var fallbackIdCounter = -1
+
+  // Exponential Moving Average (EMA) factor for smoothing motion jitter
+  private val motionAlpha = 0.35f
+
+  // Minimum normalized relative speed (frame fraction / sec) to classify as moving
+  private val relativeMovementThreshold = 0.08f
+
+  /**
+   * Processes a frame of detected objects and computes relative motion tracking info.
+   */
+  fun processFrame(
+    detectedObjects: List<DetectedObject>,
+    frameWidth: Int,
+    frameHeight: Int,
+  ): Map<DetectedObject, ObjectTrackInfo> {
+    val currentTimeMs = System.currentTimeMillis()
+    val results = IdentityHashMap<DetectedObject, ObjectTrackInfo>()
+
+    val safeWidth = max(frameWidth, 1).toFloat()
+    val safeHeight = max(frameHeight, 1).toFloat()
+    val frameDiagonalPx = sqrt(safeWidth * safeWidth + safeHeight * safeHeight)
+
+    val currentFrameTrackingIds = mutableSetOf<Int>()
+
+    for (obj in detectedObjects) {
+      val box = obj.boundingBox
+      val boxWidth = max((box.right - box.left).toFloat(), 1.0f)
+      val boxHeight = max((box.bottom - box.top).toFloat(), 1.0f)
+      val centerX = (box.left + box.right) / 2.0f
+      val centerY = (box.top + box.bottom) / 2.0f
+
+      // Identify object using trackingId or spatial match
+      val id = obj.trackingId ?: findMatchingTrackedObjectId(centerX, centerY, boxWidth, boxHeight)
+      currentFrameTrackingIds.add(id)
+
+      val state = trackedObjects[id]
+
+      if (state == null) {
+        // First frame tracking this object
+        val newState = TrackedObjectState(
+          trackingId = obj.trackingId,
+          lastCenterX = centerX,
+          lastCenterY = centerY,
+          lastWidth = boxWidth,
+          lastHeight = boxHeight,
+          lastTimestampMs = currentTimeMs,
+          smoothedRelativeSpeed = 0f,
+          smoothedDx = 0f,
+          smoothedDy = 0f
+        )
+        trackedObjects[id] = newState
+
+        results[obj] = ObjectTrackInfo(
+          trackingId = obj.trackingId,
+          relativeSpeed = 0f,
+          motionDirection = MotionDirection.STATIONARY,
+          motionLabel = "Stationary",
+          displacementX = 0f,
+          displacementY = 0f,
+          isMoving = false
+        )
+      } else {
+        val dtSec = (currentTimeMs - state.lastTimestampMs) / 1000.0f
+
+        if (dtSec <= 0f || dtSec > 1.0f) {
+          // Frame drop, re-anchor timestamp
+          state.lastTimestampMs = currentTimeMs
+          state.lastCenterX = centerX
+          state.lastCenterY = centerY
+          state.lastWidth = boxWidth
+          state.lastHeight = boxHeight
+          results[obj] = ObjectTrackInfo(
+            trackingId = obj.trackingId,
+            relativeSpeed = 0f,
+            motionDirection = MotionDirection.STATIONARY,
+            motionLabel = "Stationary",
+            displacementX = 0f,
+            displacementY = 0f,
+            isMoving = false
+          )
+          continue
+        }
+
+        // Calculate Displacement in frame pixel space
+        val dx = centerX - state.lastCenterX
+        val dy = centerY - state.lastCenterY
+        val distPx = sqrt(dx * dx + dy * dy)
+
+        // Normalize displacement relative to frame diagonal size
+        val normalizedDist = distPx / frameDiagonalPx
+        val instRelativeSpeed = normalizedDist / dtSec
+
+        // Apply EMA filter
+        val smoothedDx = motionAlpha * dx + (1f - motionAlpha) * state.smoothedDx
+        val smoothedDy = motionAlpha * dy + (1f - motionAlpha) * state.smoothedDy
+        val smoothedRelativeSpeed = motionAlpha * instRelativeSpeed + (1f - motionAlpha) * state.smoothedRelativeSpeed
+
+        state.smoothedDx = smoothedDx
+        state.smoothedDy = smoothedDy
+        state.smoothedRelativeSpeed = smoothedRelativeSpeed
+
+        // Relative box area change rate (Approaching / Receding)
+        val currentArea = boxWidth * boxHeight
+        val prevArea = max(state.lastWidth * state.lastHeight, 1.0f)
+        val relativeAreaChangeRate = ((currentArea - prevArea) / prevArea) / dtSec
+
+        val isMoving = smoothedRelativeSpeed >= relativeMovementThreshold || abs(relativeAreaChangeRate) > 0.25f
+
+        val (motionDirection, motionLabel) = determineMotionDirection(
+          isMoving = isMoving,
+          dx = smoothedDx,
+          dy = smoothedDy,
+          relativeSpeed = smoothedRelativeSpeed,
+          relativeAreaChangeRate = relativeAreaChangeRate
+        )
+
+        // Update object state
+        state.lastCenterX = centerX
+        state.lastCenterY = centerY
+        state.lastWidth = boxWidth
+        state.lastHeight = boxHeight
+        state.lastTimestampMs = currentTimeMs
+        state.lastMotionDirection = motionDirection
+
+        results[obj] = ObjectTrackInfo(
+          trackingId = obj.trackingId,
+          relativeSpeed = smoothedRelativeSpeed,
+          motionDirection = motionDirection,
+          motionLabel = motionLabel,
+          displacementX = smoothedDx,
+          displacementY = smoothedDy,
+          isMoving = isMoving
+        )
+      }
+    }
+
+    cleanStaleTrackedObjects(currentFrameTrackingIds, currentTimeMs)
+    return results
+  }
+
+  private fun findMatchingTrackedObjectId(centerX: Float, centerY: Float, width: Float, height: Float): Int {
+    var minDistanceSq = Float.MAX_VALUE
+    var matchedId: Int? = null
+
+    for ((id, state) in trackedObjects) {
+      if (state.trackingId == null) {
+        val dx = centerX - state.lastCenterX
+        val dy = centerY - state.lastCenterY
+        val distSq = dx * dx + dy * dy
+        val maxAllowedDistSq = (max(width, height) * 1.5f).let { it * it }
+
+        if (distSq < minDistanceSq && distSq < maxAllowedDistSq) {
+          minDistanceSq = distSq
+          matchedId = id
+        }
+      }
+    }
+
+    return matchedId ?: run {
+      fallbackIdCounter--
+      fallbackIdCounter
+    }
+  }
+
+  private fun determineMotionDirection(
+    isMoving: Boolean,
+    dx: Float,
+    dy: Float,
+    relativeSpeed: Float,
+    relativeAreaChangeRate: Float
+  ): Pair<MotionDirection, String> {
+    if (!isMoving) {
+      return Pair(MotionDirection.STATIONARY, "Stationary")
+    }
+
+    // Format relative motion as normalized score (e.g. Rel: 0.35)
+    val relStr = "Rel: %.2f".format(relativeSpeed)
+
+    // Check for approaching or receding scale motion
+    if (relativeAreaChangeRate > 0.25f) {
+      return Pair(MotionDirection.APPROACHING, "Approaching ($relStr)")
+    } else if (relativeAreaChangeRate < -0.25f) {
+      return Pair(MotionDirection.RECEDING, "Receding ($relStr)")
+    }
+
+    // Direction angle in degrees (screen space: x right, y down)
+    val angleRad = atan2(-dy.toDouble(), dx.toDouble()) // negate dy so y points up
+    var angleDeg = Math.toDegrees(angleRad)
+    if (angleDeg < 0) angleDeg += 360.0
+
+    val (dir, labelStr) = when {
+      angleDeg in 22.5..67.5 -> Pair(MotionDirection.UP_RIGHT, "Up-Right")
+      angleDeg in 67.5..112.5 -> Pair(MotionDirection.UP, "Moving Up")
+      angleDeg in 112.5..157.5 -> Pair(MotionDirection.UP_LEFT, "Up-Left")
+      angleDeg in 157.5..202.5 -> Pair(MotionDirection.LEFT, "Moving Left")
+      angleDeg in 202.5..247.5 -> Pair(MotionDirection.DOWN_LEFT, "Down-Left")
+      angleDeg in 247.5..292.5 -> Pair(MotionDirection.DOWN, "Moving Down")
+      angleDeg in 292.5..337.5 -> Pair(MotionDirection.DOWN_RIGHT, "Down-Right")
+      else -> Pair(MotionDirection.RIGHT, "Moving Right")
+    }
+
+    return Pair(dir, "%s ($relStr)".format(labelStr))
+  }
+
+  private fun cleanStaleTrackedObjects(currentFrameTrackingIds: Set<Int>, currentTimeMs: Long) {
+    val staleIds = trackedObjects.filter { (id, state) ->
+      id !in currentFrameTrackingIds && (currentTimeMs - state.lastTimestampMs > STALE_THRESHOLD_MS)
+    }.keys
+
+    for (id in staleIds) {
+      trackedObjects.remove(id)
+    }
+  }
+
+  companion object {
+    private const val STALE_THRESHOLD_MS = 1200L
+  }
+}
