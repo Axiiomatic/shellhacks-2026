@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Object Detection</string>
+    <string name="permission_camera_rationale">Camera permission is required for real-time object detection.</string>
+    <string name="switch_to_front_camera">Switch to Front Camera</string>
+    <string name="switch_to_back_camera">Switch to Back Camera</string>
+</resources>
