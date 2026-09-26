@@ -3,6 +3,7 @@ package com.example.objectdetection
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Typeface
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -16,7 +17,11 @@ import android.view.GestureDetector
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -338,6 +343,106 @@ class MainActivity : AppCompatActivity() {
       )
     }
     binding.appTitle.text = spannable
+    binding.appTitle.isClickable = true
+    binding.appTitle.isFocusable = true
+    binding.appTitle.setOnClickListener { view ->
+      view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+      showGeminiLogsDialog()
+    }
+  }
+
+  private fun showGeminiLogsDialog() {
+    val logs = GeminiCallLogger.getLogs()
+    val context = this
+
+    val builder = AlertDialog.Builder(context)
+    builder.setTitle("Gemini Call Logs (${logs.size})")
+
+    if (logs.isEmpty()) {
+      builder.setMessage("No Gemini inference calls recorded yet.")
+      builder.setPositiveButton("Close", null)
+      builder.show()
+      return
+    }
+
+    val scrollView = ScrollView(context)
+    val container = LinearLayout(context).apply {
+      orientation = LinearLayout.VERTICAL
+      setPadding(32, 24, 32, 24)
+    }
+
+    for (log in logs) {
+      val cardView = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(24, 20, 24, 20)
+        background = ContextCompat.getDrawable(context, R.drawable.quick_controls_btn_bg)
+        backgroundTintList = ContextCompat.getColorStateList(context, R.color.dark_card)
+        val params = LinearLayout.LayoutParams(
+          LinearLayout.LayoutParams.MATCH_PARENT,
+          LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+          setMargins(0, 0, 0, 20)
+        }
+        layoutParams = params
+      }
+
+      val headerText = TextView(context).apply {
+        text = "Call #${log.id} • ${log.triggerType} [${log.formattedTime}]"
+        setTextColor(ContextCompat.getColor(context, R.color.pastel_lavender))
+        textSize = 15f
+        typeface = Typeface.DEFAULT_BOLD
+      }
+
+      val statusStr = if (log.isSuccess) "SUCCESS" else "FAILED"
+      val statusColor = if (log.isSuccess) R.color.pastel_green else R.color.pastel_peach
+      val durationStr = log.durationMs?.let { "${it}ms" } ?: "--"
+      val intervalStr = log.intervalMs?.let { "${it}ms" } ?: "First call"
+
+      val metaText = TextView(context).apply {
+        text = "Status: $statusStr | Duration: $durationStr | Interval: $intervalStr"
+        setTextColor(ContextCompat.getColor(context, statusColor))
+        textSize = 13f
+        setPadding(0, 8, 0, 8)
+      }
+
+      val bodyText = TextView(context).apply {
+        text = if (log.isSuccess) {
+          "Output: ${log.responseText ?: "(No response)"}"
+        } else {
+          "Error: ${log.errorMessage ?: "Unknown error"}"
+        }
+        setTextColor(ContextCompat.getColor(context, R.color.white))
+        textSize = 14f
+      }
+
+      cardView.addView(headerText)
+      cardView.addView(metaText)
+      cardView.addView(bodyText)
+
+      if (log.sceneContext.isNotBlank()) {
+        val contextText = TextView(context).apply {
+          text = "Scene Context:\n${log.sceneContext}"
+          setTextColor(ContextCompat.getColor(context, R.color.white))
+          textSize = 11f
+          setPadding(0, 8, 0, 0)
+          alpha = 0.7f
+        }
+        cardView.addView(contextText)
+      }
+
+      container.addView(cardView)
+    }
+
+    scrollView.addView(container)
+    builder.setView(scrollView)
+
+    builder.setPositiveButton("Close", null)
+    builder.setNeutralButton("Clear Logs") { _, _ ->
+      GeminiCallLogger.clearLogs()
+      Toast.makeText(context, "Logs cleared", Toast.LENGTH_SHORT).show()
+    }
+
+    builder.show()
   }
 
   override fun onResume() {

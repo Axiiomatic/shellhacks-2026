@@ -81,8 +81,9 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
       graphicOverlay.add(
         GeminiTimingGraphic(
           graphicOverlay,
-          geminiInferenceManager.lastInferenceDurationMs,
-          geminiInferenceManager.inferenceInProgress
+          geminiInferenceManager.lastCallIntervalMs,
+          geminiInferenceManager.inferenceInProgress,
+          PreferenceUtils.isInferenceModeEnabled(context)
         )
       )
 

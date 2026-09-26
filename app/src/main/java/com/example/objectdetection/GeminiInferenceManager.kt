@@ -13,11 +13,13 @@ class GeminiInferenceManager(
 ) {
 
   private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
-  private var lastGeminiCallTimeMs = 0L
+  private var lastGeminiCallRealtimeMs = 0L
   private var latestFrameData: ByteBuffer? = null
   private var latestFrameMetadata: FrameMetadata? = null
   private val recentOutputs = ArrayDeque<String>()
   @Volatile var lastInferenceDurationMs: Long? = null
+    private set
+  @Volatile var lastCallIntervalMs: Long? = null
     private set
   @Volatile var inferenceInProgress: Boolean = false
     private set
@@ -40,9 +42,9 @@ class GeminiInferenceManager(
       return
     }
 
-    val currentTime = System.currentTimeMillis()
+    val currentTime = SystemClock.elapsedRealtime()
 
-    if (currentTime - lastGeminiCallTimeMs >= MIN_CALL_INTERVAL_MS) {
+    if (lastGeminiCallRealtimeMs == 0L || currentTime - lastGeminiCallRealtimeMs >= MIN_CALL_INTERVAL_MS) {
       Log.d(TAG, "Triggering Gemini periodically (every ${MIN_CALL_INTERVAL_MS / 1000} seconds)")
       triggerGemini(latestFrameData, latestFrameMetadata, isBumpAlert, sceneContext)
     }
@@ -55,12 +57,16 @@ class GeminiInferenceManager(
     sceneContext: String = ""
   ) {
     if (frameData == null || frameMetadata == null) return
-    val currentTime = System.currentTimeMillis()
-    if (currentTime - lastGeminiCallTimeMs < MIN_CALL_INTERVAL_MS) {
+    val currentTime = SystemClock.elapsedRealtime()
+    if (lastGeminiCallRealtimeMs > 0L && currentTime - lastGeminiCallRealtimeMs < MIN_CALL_INTERVAL_MS) {
       return
     }
 
-    lastGeminiCallTimeMs = currentTime
+    val intervalMs = if (lastGeminiCallRealtimeMs > 0L) currentTime - lastGeminiCallRealtimeMs else null
+    lastCallIntervalMs = intervalMs
+    lastGeminiCallRealtimeMs = currentTime
+
+    val triggerType = if (isBumpAlert) "Bump Alert" else "Periodic"
 
     scope.launch {
       val startTimeMs = SystemClock.elapsedRealtime()
@@ -72,7 +78,7 @@ class GeminiInferenceManager(
         }
 
         if (bitmap != null) {
-          val description = geminiHelper.analyzeFrame(
+          val result = geminiHelper.analyzeFrame(
             bitmap,
             isBumpAlert,
             sceneContext,
@@ -82,6 +88,22 @@ class GeminiInferenceManager(
             bitmap.recycle()
           }
 
+          val durationMs = SystemClock.elapsedRealtime() - startTimeMs
+          lastInferenceDurationMs = durationMs
+
+          if (result.errorMessage != "Analysis already in flight") {
+            GeminiCallLogger.logCall(
+              triggerType = triggerType,
+              sceneContext = sceneContext,
+              responseText = result.responseText,
+              durationMs = durationMs,
+              intervalMs = intervalMs,
+              isSuccess = result.isSuccess,
+              errorMessage = result.errorMessage
+            )
+          }
+
+          val description = result.responseText
           if (!description.isNullOrBlank()) {
             recentOutputs.addLast(description)
             while (recentOutputs.size > MAX_RECENT_OUTPUTS) {
@@ -92,7 +114,6 @@ class GeminiInferenceManager(
           }
         }
       } finally {
-        lastInferenceDurationMs = SystemClock.elapsedRealtime() - startTimeMs
         inferenceInProgress = false
       }
     }

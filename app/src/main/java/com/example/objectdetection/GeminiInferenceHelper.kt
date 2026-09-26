@@ -8,7 +8,6 @@ import android.os.Looper
 import android.util.Base64
 import android.util.Log
 import android.widget.Toast
-import com.example.objectdetection.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -18,6 +17,12 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
+
+data class GeminiInferenceResult(
+  val responseText: String?,
+  val errorMessage: String? = null,
+  val isSuccess: Boolean
+)
 
 class GeminiInferenceHelper(private val context: Context) {
 
@@ -30,10 +35,10 @@ class GeminiInferenceHelper(private val context: Context) {
     isBumpAlert: Boolean,
     sceneContext: String = "",
     recentOutputs: List<String> = emptyList()
-  ): String? = withContext(Dispatchers.IO) {
+  ): GeminiInferenceResult = withContext(Dispatchers.IO) {
     if (!isAnalyzing.compareAndSet(false, true)) {
       Log.d(TAG, "Analysis already in flight, skipping frame.")
-      return@withContext null
+      return@withContext GeminiInferenceResult(null, "Analysis already in flight", false)
     }
 
     try {
@@ -106,10 +111,10 @@ class GeminiInferenceHelper(private val context: Context) {
             if (text.isNotBlank()) {
               showToast("Gemini: $text")
             }
-            return@withContext truncateTo20Words(text)
+            return@withContext GeminiInferenceResult(truncateTo20Words(text), null, true)
           }
         }
-        return@withContext null
+        return@withContext GeminiInferenceResult(null, "No text candidates returned", false)
       } else {
         val errorString = try {
           connection.errorStream?.bufferedReader()?.use { it.readText() } ?: "Unknown error"
@@ -118,12 +123,12 @@ class GeminiInferenceHelper(private val context: Context) {
         }
         Log.e(TAG, "Generative Language API v1 error response ($responseCode): $errorString")
         showErrorDialog("Gemini Error $responseCode", errorString)
-        return@withContext null
+        return@withContext GeminiInferenceResult(null, "HTTP $responseCode: $errorString", false)
       }
     } catch (e: Exception) {
       Log.e(TAG, "Gemini API connection failed: ${e.message}", e)
       showErrorDialog("Gemini Exception", e.localizedMessage ?: e.javaClass.simpleName)
-      return@withContext null
+      return@withContext GeminiInferenceResult(null, e.localizedMessage ?: e.javaClass.simpleName, false)
     } finally {
       isAnalyzing.set(false)
     }

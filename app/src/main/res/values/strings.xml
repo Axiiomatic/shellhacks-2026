@@ -26,6 +26,7 @@
     <string name="cd_torch_off">Flashlight turned off. Tap to turn on.</string>
     <string name="cd_inference_on">Gemini AI inference mode enabled. Tap to disable.</string>
     <string name="cd_inference_off">Gemini AI inference mode disabled. Tap to enable.</string>
+    <string name="cd_app_title">WalkThrough title. Tap to view Gemini call logs.</string>
 
     <string name="cd_header_toggle">Quick controls toggle button. Double tap to expand or collapse quick controls.</string>
     <string name="quick_controls_label">QUICK CONTROLS</string>
