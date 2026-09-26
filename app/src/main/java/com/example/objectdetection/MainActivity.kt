@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     updateAudioToggleButton()
     updateVibrationToggleButton()
     updateTorchToggleButton()
+    updateInferenceToggleButton()
 
     binding.audioToggle.setOnClickListener { view ->
       view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -66,6 +67,15 @@ class MainActivity : AppCompatActivity() {
       cameraSource?.setTorch(newTorchState)
       updateTorchToggleButton()
       val cd = if (newTorchState) getString(R.string.cd_torch_on) else getString(R.string.cd_torch_off)
+      view.announceForAccessibility(cd)
+    }
+
+    binding.inferenceToggle.setOnClickListener { view ->
+      view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+      val newInferenceState = !PreferenceUtils.isInferenceModeEnabled(this)
+      PreferenceUtils.setInferenceModeEnabled(this, newInferenceState)
+      updateInferenceToggleButton()
+      val cd = if (newInferenceState) getString(R.string.cd_inference_on) else getString(R.string.cd_inference_off)
       view.announceForAccessibility(cd)
     }
   }
@@ -144,6 +154,24 @@ class MainActivity : AppCompatActivity() {
       binding.torchToggle.alpha = 0.55f
     }
     binding.torchToggle.contentDescription = if (isTorchOn) getString(R.string.cd_torch_on) else getString(R.string.cd_torch_off)
+  }
+
+  private fun updateInferenceToggleButton() {
+    val isInferenceOn = PreferenceUtils.isInferenceModeEnabled(this)
+    binding.inferenceToggle.text = if (isInferenceOn) getString(R.string.inference_on) else getString(R.string.inference_off)
+    val iconRes = R.drawable.ic_ai
+    binding.inferenceToggle.setIconResource(iconRes)
+
+    if (isInferenceOn) {
+      binding.inferenceToggle.setStrokeColorResource(R.color.accessible_gold)
+      binding.inferenceToggle.strokeWidth = dpToPx(2)
+      binding.inferenceToggle.alpha = 1.0f
+    } else {
+      binding.inferenceToggle.setStrokeColorResource(R.color.accessible_outline)
+      binding.inferenceToggle.strokeWidth = dpToPx(1)
+      binding.inferenceToggle.alpha = 0.55f
+    }
+    binding.inferenceToggle.contentDescription = if (isInferenceOn) getString(R.string.cd_inference_on) else getString(R.string.cd_inference_off)
   }
 
   private fun updateCameraFacingButton() {

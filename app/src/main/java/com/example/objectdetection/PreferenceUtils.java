@@ -9,6 +9,7 @@ public class PreferenceUtils {
   private static final String KEY_VIBRATION_ENABLED = "key_vibration_enabled";
   private static final String KEY_AUDIO_ENABLED = "key_audio_enabled";
   private static final String KEY_TORCH_ENABLED = "key_torch_enabled";
+  private static final String KEY_INFERENCE_ENABLED = "key_inference_enabled";
 
   public static boolean isCameraLiveViewportEnabled(Context context) {
     return true;
@@ -46,6 +47,16 @@ public class PreferenceUtils {
   public static void setTorchEnabled(Context context, boolean enabled) {
     SharedPreferences sp = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     sp.edit().putBoolean(KEY_TORCH_ENABLED, enabled).apply();
+  }
+
+  public static boolean isInferenceModeEnabled(Context context) {
+    SharedPreferences sp = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+    return sp.getBoolean(KEY_INFERENCE_ENABLED, false);
+  }
+
+  public static void setInferenceModeEnabled(Context context, boolean enabled) {
+    SharedPreferences sp = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+    sp.edit().putBoolean(KEY_INFERENCE_ENABLED, enabled).apply();
   }
 
   private PreferenceUtils() {}

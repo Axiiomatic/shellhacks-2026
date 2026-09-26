@@ -191,6 +191,7 @@
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
                     android:layout_width="120dp"
                     android:layout_height="60dp"
+                    android:layout_marginEnd="8dp"
                     android:text="@string/camera_back"
                     android:textColor="@color/white"
                     android:textSize="13sp"
@@ -200,6 +201,23 @@
                     app:iconSize="22dp"
                     app:iconTint="@color/white"
                     app:strokeColor="@color/white"
+                    app:strokeWidth="1dp" />
+
+                <!-- Gemini AI Inference Mode Toggle -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/inference_toggle"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton.Icon"
+                    android:layout_width="120dp"
+                    android:layout_height="60dp"
+                    android:text="@string/inference_off"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="12dp"
+                    app:icon="@drawable/ic_ai"
+                    app:iconSize="22dp"
+                    app:iconTint="@color/white"
+                    app:strokeColor="@color/accessible_outline"
                     app:strokeWidth="1dp" />
 
             </LinearLayout>

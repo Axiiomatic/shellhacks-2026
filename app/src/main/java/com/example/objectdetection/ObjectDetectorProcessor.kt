@@ -21,6 +21,9 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
   private val motionTracker = MotionTracker()
   private val vibratorHelper = VibratorHelper(context)
   private val audioAlertHelper = AudioAlertHelper(context)
+  private val ttsHelper = TtsHelper(context)
+  private val geminiInferenceHelper = GeminiInferenceHelper(context)
+  private val geminiInferenceManager = GeminiInferenceManager(context, ttsHelper, geminiInferenceHelper)
   private var lastAlertTimeMs = 0L
 
   override fun stop() {
@@ -31,6 +34,8 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
       Log.e(TAG, "Exception thrown while trying to close object detector!", e)
     }
     audioAlertHelper.release()
+    ttsHelper.release()
+    geminiInferenceManager.release()
   }
 
   override fun detectInImage(image: InputImage): Task<List<DetectedObject>> {
@@ -95,6 +100,8 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
           }
         }
       }
+
+      geminiInferenceManager.onFrameProcessed(results, frameData, frameMetadata, rapidApproachDetected)
     } finally {
       grayMat?.release()
     }

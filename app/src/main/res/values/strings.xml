@@ -26,4 +26,9 @@
     <string name="cd_torch_off">Flashlight turned off. Tap to turn on.</string>
     <string name="cd_camera_back">Camera set to back camera. Tap to switch to front camera.</string>
     <string name="cd_camera_front">Camera set to front camera. Tap to switch to back camera.</string>
+
+    <string name="inference_on">Gemini AI: ON</string>
+    <string name="inference_off">Gemini AI: OFF</string>
+    <string name="cd_inference_on">Gemini AI inference mode enabled. Tap to disable.</string>
+    <string name="cd_inference_off">Gemini AI inference mode disabled. Tap to enable.</string>
 </resources>
