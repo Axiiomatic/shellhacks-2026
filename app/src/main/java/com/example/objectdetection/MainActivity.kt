@@ -4,10 +4,6 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Typeface
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
 import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableString
@@ -31,7 +27,6 @@ import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 import org.opencv.android.OpenCVLoader
 import java.io.IOException
 import kotlin.math.abs
-import kotlin.math.sqrt
 
 class MainActivity : AppCompatActivity() {
 
@@ -41,37 +36,6 @@ class MainActivity : AppCompatActivity() {
   private lateinit var ttsHelper: TtsHelper
 
   private lateinit var gestureDetector: GestureDetectorCompat
-  private var sensorManager: SensorManager? = null
-  private var accelerometer: Sensor? = null
-  private var lastShakeTime = 0L
-  private var shakeCount = 0
-
-  private val sensorListener = object : SensorEventListener {
-    override fun onSensorChanged(event: SensorEvent) {
-      if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-        val x = event.values[0]
-        val y = event.values[1]
-        val z = event.values[2]
-        val gX = x / SensorManager.GRAVITY_EARTH
-        val gY = y / SensorManager.GRAVITY_EARTH
-        val gZ = z / SensorManager.GRAVITY_EARTH
-        val gForce = sqrt((gX * gX + gY * gY + gZ * gZ).toDouble()).toFloat()
-        if (gForce > 2.2f) {
-          val now = System.currentTimeMillis()
-          if (now - lastShakeTime > 600) {
-            lastShakeTime = now
-            shakeCount++
-            if (shakeCount >= 2) {
-              shakeCount = 0
-              binding.vibrationToggle.performClick()
-            }
-          }
-        }
-      }
-    }
-
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-  }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -85,8 +49,6 @@ class MainActivity : AppCompatActivity() {
     setupBottomCardToggle()
     collapseCard()
 
-    sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
-    accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
     gestureDetector = GestureDetectorCompat(this, object : GestureDetector.SimpleOnGestureListener() {
       override fun onDoubleTap(e: MotionEvent): Boolean {
@@ -447,7 +409,6 @@ class MainActivity : AppCompatActivity() {
 
   override fun onResume() {
     super.onResume()
-    sensorManager?.registerListener(sensorListener, accelerometer, SensorManager.SENSOR_DELAY_UI)
     if (allRuntimePermissionsGranted()) {
       createCameraSource()
       startCameraSource()
@@ -456,7 +417,6 @@ class MainActivity : AppCompatActivity() {
 
   override fun onPause() {
     super.onPause()
-    sensorManager?.unregisterListener(sensorListener)
     binding.previewView.stop()
   }
 
