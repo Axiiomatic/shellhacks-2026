@@ -170,16 +170,22 @@ class MotionTracker {
         )
         val hasReliableAnchors = anchorResult.validPointCount >= 3 && anchorResult.confidence > 0.2f
 
-        val dx = if (hasReliableAnchors) anchorResult.anchorDisplacementX else 0f
-        val dy = if (hasReliableAnchors) anchorResult.anchorDisplacementY else 0f
+        val bboxDx = centerX - state.lastCenterX
+        val bboxDy = centerY - state.lastCenterY
+        val dx = if (hasReliableAnchors) anchorResult.anchorDisplacementX else bboxDx
+        val dy = if (hasReliableAnchors) anchorResult.anchorDisplacementY else bboxDy
         val distPx = sqrt(dx * dx + dy * dy)
 
         // Normalize displacement relative to frame diagonal size
         val normalizedDist = distPx / frameDiagonalPx
         val instRelativeSpeed = normalizedDist / dtSec
 
-        // Bounding-box growth is intentionally not used as a depth signal.
-        val effectiveScaleGrowth = if (hasReliableAnchors) anchorResult.anchorScaleGrowth else 0f
+        // Bounding-box growth fallback when optical flow anchor points are absent
+        val boxDiag = sqrt(boxWidth * boxWidth + boxHeight * boxHeight)
+        val prevDiag = sqrt(state.lastWidth * state.lastWidth + state.lastHeight * state.lastHeight)
+        val bboxScaleGrowth = if (prevDiag > 10f) ((boxDiag - prevDiag) / prevDiag) / dtSec else 0f
+
+        val effectiveScaleGrowth = if (hasReliableAnchors) anchorResult.anchorScaleGrowth else bboxScaleGrowth
 
         // Apply EMA filter
         val smoothedDx = motionAlpha * dx + (1f - motionAlpha) * state.smoothedDx
@@ -197,15 +203,15 @@ class MotionTracker {
         val estimatedTtc = if (smoothedScaleGrowth > 0.05f) 1.0f / smoothedScaleGrowth else Float.MAX_VALUE
         val isImminentTtc = estimatedTtc <= MAX_TTC_SECONDS
 
-        // 2. Directional Collision Path (supports head-on AND angled approaches)
-        // Object must extend into the forward path corridor [0.20, 0.80]
-        val normLeft = box.left / safeWidth
-        val normRight = box.right / safeWidth
-        val isInCollisionPath = normLeft <= PATH_CORRIDOR_X_MAX && normRight >= PATH_CORRIDOR_X_MIN
+        // Proximity check: Object must be sufficiently close
+        val normDiagFraction = boxDiag / frameDiagonalPx
+        val isCloseEnough = normDiagFraction >= MIN_PROXIMITY_FRACTION
+
+        // 2. Directional Collision Path (center must be within forward corridor [0.20, 0.80])
+        val normCenterX = centerX / safeWidth
+        val isInCollisionPath = normCenterX in PATH_CORRIDOR_X_MIN..PATH_CORRIDOR_X_MAX
 
         // 3. Expansion-to-Motion Ratio
-        // Permits angled approaches (where both expansion and lateral movement occur),
-        // but filters out pure camera sweeps / lateral pans across the room (where lateral speed is high, scale expansion is tiny)
         val expansionToMotionRatio = if (smoothedRelativeSpeed > 0.05f) {
           smoothedScaleGrowth / smoothedRelativeSpeed
         } else {
@@ -215,6 +221,7 @@ class MotionTracker {
 
         val isExpandingRapidly = isRapidScaleGrowth &&
             isImminentTtc &&
+            isCloseEnough &&
             isInCollisionPath &&
             isApproachMotion
 
@@ -349,6 +356,7 @@ class MotionTracker {
     private const val STALE_THRESHOLD_MS = 1200L
     const val RAPID_APPROACH_THRESHOLD = 0.42f // 42%/s scale growth rate required for imminent bump
     const val MAX_TTC_SECONDS = 2.0f // Estimated Time-To-Collision must be <= 2.0 seconds
+    const val MIN_PROXIMITY_FRACTION = 0.22f // Minimum size fraction before collision alert
     const val PATH_CORRIDOR_X_MIN = 0.20f // Collision path corridor starts at 20% width
     const val PATH_CORRIDOR_X_MAX = 0.80f // Collision path corridor ends at 80% width
     const val MIN_EXPANSION_TO_MOTION_RATIO = 0.35f // Minimum expansion-to-lateral-speed ratio

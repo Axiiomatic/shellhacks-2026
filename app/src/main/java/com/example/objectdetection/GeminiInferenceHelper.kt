@@ -27,7 +27,7 @@ data class GeminiInferenceResult(
 class GeminiInferenceHelper(private val context: Context) {
 
   private val token = BuildConfig.GEMINI_API_KEY
-  private val modelName = "gemini-3.5-flash-lite"
+  private val modelName = "gemini-3.1-flash-lite"
   private val isAnalyzing = AtomicBoolean(false)
 
   suspend fun analyzeFrame(
@@ -42,11 +42,12 @@ class GeminiInferenceHelper(private val context: Context) {
     }
 
     try {
-      val downscaled = downscaleBitmap(bitmap, 512)
+      val downscaled = downscaleBitmap(bitmap, 768)
       val outputStream = ByteArrayOutputStream()
-      downscaled.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+      downscaled.compress(Bitmap.CompressFormat.WEBP, 90, outputStream)
       val imageBytes = outputStream.toByteArray()
       val base64Image = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
+      val mimeType = "image/webp"
 
       if (downscaled != bitmap && !downscaled.isRecycled) {
         downscaled.recycle()
@@ -57,15 +58,14 @@ class GeminiInferenceHelper(private val context: Context) {
       } else {
         "Recent Gemini guidance:\n" + recentOutputs.joinToString("\n") { "- $it" }
       }
-      val promptText = "You are a navigational assistant, helping a blind user walking through the environment. This is a photo of the camera view that the user sees. Analyze the most relevant objects in the image in terms of walking navigation, then give the user verbal directions with the most relevant information. Keep the description of the world short, limiting the response to a sentence or two of landmarks and navigational info. For example, if the photo depicts a trash can approaching the left side of the camera view, warn the user \"Watch out for a trash can slightly on your left.\" \n$sceneContext\n$historyText"
-
+      val promptText = "You are an expert vision guide for safe navigation. Analyze the image and detected obstacles. Immediately call out any safety hazards, trip hazards, curbs, stairs, or obstacles ahead. Provide precise, actionable directional guidance (e.g., distance and which way to step). Be direct and concise (maximum 20 words).\n$sceneContext\n$historyText"
 
       val jsonBody = JSONObject().apply {
         put("contents", JSONArray().put(
           JSONObject().put("parts", JSONArray()
             .put(JSONObject().put("text", promptText))
             .put(JSONObject().put("inline_data", JSONObject()
-              .put("mime_type", "image/jpeg")
+              .put("mime_type", mimeType)
               .put("data", base64Image)
             ))
           )

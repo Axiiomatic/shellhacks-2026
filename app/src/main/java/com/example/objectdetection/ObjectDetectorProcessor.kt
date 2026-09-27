@@ -156,10 +156,11 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
           trackInfo.relativeScaleGrowth
         )
       }
-      val collision = if (trackInfo?.isRapidApproaching == true) "COLLISION COURSE" else "no collision warning"
+      val isHazardObject = trackInfo?.isRapidApproaching == true || width > 0.4f || height > 0.4f
+      val hazardStatus = if (isHazardObject) "⚠️ HIGH HAZARD / COLLISION COURSE" else "normal"
       String.format(
         Locale.US,
-        "Object %d: %s; center=(%.2f,%.2f); size=(%.2f,%.2f); motion=%s; trajectory=%s; %s",
+        "Object %d: %s; center=(%.2f,%.2f); size=(%.2f,%.2f); motion=%s; trajectory=%s; status=%s",
         index + 1,
         labels,
         centerX,
@@ -168,7 +169,7 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
         height,
         motion,
         displacement,
-        collision
+        hazardStatus
       )
     }
 
