@@ -15,7 +15,7 @@ Finally, since the app _is_ geared towards the visually impaired, all the GUI el
 - **Swipe Left**: Toggle Vibration Alerts
 - **Double-tap**: Toggle Flashlight
 - **Hold for 2 seconds**: Toggle AI Inference
-- 
+
 ## How we built it
 
 The app was built in Android-Studio using Google's Machine Learning Vision example app as a base to build from, and adding all the additional systems on top of it using Java and Kotlin.
