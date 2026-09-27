@@ -25,6 +25,7 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
   private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
   private var latestDetectedText: String = ""
   private val motionTracker = MotionTracker()
+  private val cameraMotionTracker = CameraMotionTracker()
   private val arEnvironmentMapper = ArEnvironmentMapper(context)
   private val vibratorHelper = VibratorHelper(context)
   private val audioAlertHelper = AudioAlertHelper(context)
@@ -41,6 +42,7 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
       Log.e(TAG, "Exception thrown while trying to close object detector!", e)
     }
     arEnvironmentMapper.close()
+    cameraMotionTracker.clear()
     audioAlertHelper.release()
     ttsHelper.release()
     geminiInferenceManager.release()
@@ -88,6 +90,7 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
         frameHeight = graphicOverlay.imageHeight,
         currGrayMat = grayMat
       )
+      val cameraMotion = cameraMotionTracker.processFrame(grayMat)
 
       val environment3DMap = arEnvironmentMapper.mapEnvironment(
         detectedObjects = results,
@@ -171,7 +174,8 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
         frameData,
         frameMetadata,
         rapidApproachDetected,
-        environment3DMap.buildGemini3DSceneContext()
+        environment3DMap.buildGemini3DSceneContext(),
+        cameraMotion
       )
     } finally {
       grayMat?.release()

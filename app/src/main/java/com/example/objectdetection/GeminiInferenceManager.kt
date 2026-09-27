@@ -34,7 +34,8 @@ class GeminiInferenceManager(
     frameData: ByteBuffer?,
     frameMetadata: FrameMetadata?,
     isBumpAlert: Boolean,
-    sceneContext: String
+    sceneContext: String,
+    cameraMotion: CameraMotionState = CameraMotionState.UNKNOWN
   ) {
     updateLatestFrame(frameData, frameMetadata)
 
@@ -46,7 +47,7 @@ class GeminiInferenceManager(
 
     if (lastGeminiCallRealtimeMs == 0L || currentTime - lastGeminiCallRealtimeMs >= MIN_CALL_INTERVAL_MS) {
       Log.d(TAG, "Triggering Gemini periodically (every ${MIN_CALL_INTERVAL_MS / 1000} seconds)")
-      triggerGemini(latestFrameData, latestFrameMetadata, isBumpAlert, sceneContext)
+      triggerGemini(latestFrameData, latestFrameMetadata, isBumpAlert, sceneContext, cameraMotion)
     }
   }
 
@@ -54,7 +55,8 @@ class GeminiInferenceManager(
     frameData: ByteBuffer?,
     frameMetadata: FrameMetadata?,
     isBumpAlert: Boolean = false,
-    sceneContext: String = ""
+    sceneContext: String = "",
+    cameraMotion: CameraMotionState = CameraMotionState.UNKNOWN
   ) {
     if (frameData == null || frameMetadata == null) return
     val currentTime = SystemClock.elapsedRealtime()
@@ -82,7 +84,8 @@ class GeminiInferenceManager(
             bitmap,
             isBumpAlert,
             sceneContext,
-            recentOutputs.toList()
+            recentOutputs.toList(),
+            cameraMotion
           )
           if (!bitmap.isRecycled) {
             bitmap.recycle()
@@ -110,7 +113,11 @@ class GeminiInferenceManager(
               recentOutputs.removeFirst()
             }
             Log.d(TAG, "Gemini response: $description")
-            ttsHelper.speak(description, override = false)
+            ttsHelper.speak(
+              description,
+              override = false,
+              critical = isCriticalResponse(description) || isBumpAlert
+            )
           }
         }
       } finally {
@@ -121,6 +128,13 @@ class GeminiInferenceManager(
 
   fun release() {
     scope.cancel()
+  }
+
+  private fun isCriticalResponse(description: String): Boolean {
+    val normalized = description.lowercase()
+    return listOf("stop", "collision", "immediate", "danger", "bump", "hazard").any {
+      normalized.contains(it)
+    }
   }
 
   companion object {

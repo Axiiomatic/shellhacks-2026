@@ -34,7 +34,8 @@ class GeminiInferenceHelper(private val context: Context) {
     bitmap: Bitmap,
     isBumpAlert: Boolean,
     sceneContext: String = "",
-    recentOutputs: List<String> = emptyList()
+    recentOutputs: List<String> = emptyList(),
+    cameraMotion: CameraMotionState = CameraMotionState.UNKNOWN
   ): GeminiInferenceResult = withContext(Dispatchers.IO) {
     if (!isAnalyzing.compareAndSet(false, true)) {
       Log.d(TAG, "Analysis already in flight, skipping frame.")
@@ -54,11 +55,42 @@ class GeminiInferenceHelper(private val context: Context) {
       }
 
       val historyText = if (recentOutputs.isEmpty()) {
-        "Recent Gemini guidance: none."
+        "Recent spoken guidance: none."
       } else {
-        "Recent Gemini guidance:\n" + recentOutputs.joinToString("\n") { "- $it" }
+        "Recent spoken guidance:\n" + recentOutputs.joinToString("\n") { "- $it" }
       }
-      val promptText = "You are an expert vision guide for safe navigation. Analyze the image and detected obstacles. Immediately call out any safety hazards, trip hazards, curbs, stairs, or obstacles ahead. Provide precise, actionable directional guidance (e.g., distance and which way to step). Be direct and concise (maximum 20 words).\n$sceneContext\n$historyText"
+      val bumpInstruction = if (isBumpAlert) {
+        "An immediate collision risk is detected; give the urgent action first."
+      } else {
+        "Do not use urgent wording unless there is an immediate collision risk."
+      }
+      val modeInstruction = if (cameraMotion.isMoving) {
+        "The user is moving: focus on obstacles likely to matter within 5 seconds, tripping hazards, curbs, stairs, and clear directional navigation. Skip general scenery unless it affects route safety."
+      } else {
+        "The user is stationary: focus on understanding the environment, such as whether it is open or enclosed, the setting type, surfaces, stable landmarks, and useful spatial context. Add a new environmental detail instead of repeating recent guidance."
+      }
+      val responseLengthInstruction = when {
+        isBumpAlert -> "Urgent updates may use up to 24 words."
+        cameraMotion.isMoving -> "Keep moving-mode updates to 12 words or fewer."
+        else -> "Stationary-mode environmental updates may use up to 18 words."
+      }
+      val promptText = """
+        You are a concise navigation assistant for a person using a camera.
+        The request and response have about 5 seconds of latency. Treat this image and reference data as the starting point of a 5-second forecast.
+        Predict what will be relevant within the next 5 seconds, not only what is relevant now.
+        Prioritize hazards likely to enter the travel path, objects approaching quickly, narrowing safe paths, and actions needed before they become immediate.
+        Use object motion, approach rate, time-to-collision, distance, path position, and camera motion from the reference data as evidence.
+        Do not warn about a static, distant, or off-path object unless its predicted motion makes it relevant within 5 seconds.
+        State uncertainty conservatively; never invent motion or future events not supported by the image or reference data.
+        $modeInstruction
+        Return one useful spoken update. $responseLengthInstruction Never return SILENT.
+        Use recent spoken guidance to avoid repeating unchanged details. When the scene repeats, provide a different useful environmental or contextual detail rather than restating the same answer.
+        Do not say STOP IMMEDIATELY unless there is an immediate collision risk.
+        $bumpInstruction
+        Camera motion: ${cameraMotion.promptDescription}
+        $sceneContext
+        $historyText
+      """.trimIndent()
 
       val jsonBody = JSONObject().apply {
         put("contents", JSONArray().put(
@@ -104,11 +136,21 @@ class GeminiInferenceHelper(private val context: Context) {
           if (parts != null && parts.length() > 0) {
             val part = parts.getJSONObject(0)
             val text = part.optString("text", "").trim()
-            Log.d(TAG, "Gemini API connected successfully! Response: $text")
-            if (text.isNotBlank()) {
-              showToast("Gemini: $text")
+            val maxWords = when {
+              isBumpAlert -> 24
+              cameraMotion.isMoving -> 12
+              else -> 18
             }
-            return@withContext GeminiInferenceResult(truncateTo20Words(text), null, true)
+            val spokenResponse = ensureSpokenResponse(truncateToWords(text, maxWords), isBumpAlert, cameraMotion)
+            Log.d(TAG, "Gemini API connected successfully! Response: $text")
+            if (spokenResponse.isNotBlank()) {
+              showToast("Gemini: $spokenResponse")
+            }
+            return@withContext GeminiInferenceResult(
+              spokenResponse,
+              null,
+              true
+            )
           }
         }
         return@withContext GeminiInferenceResult(null, "No text candidates returned", false)
@@ -148,12 +190,23 @@ class GeminiInferenceHelper(private val context: Context) {
     return Bitmap.createScaledBitmap(bitmap, max(newWidth, 1), max(newHeight, 1), true)
   }
 
-  private fun truncateTo20Words(text: String?): String? {
+  private fun truncateToWords(text: String?, maxWords: Int): String? {
     if (text.isNullOrEmpty()) return null
     val cleanText = text.replace("\n", " ")
     val words = cleanText.split("\\s+".toRegex())
-    if (words.size <= 20) return cleanText
-    return words.take(20).joinToString(" ")
+    if (words.size <= maxWords) return cleanText
+    return words.take(maxWords).joinToString(" ")
+  }
+
+  private fun ensureSpokenResponse(text: String?, isBumpAlert: Boolean, cameraMotion: CameraMotionState): String {
+    if (!text.isNullOrBlank() && !text.trim().trimEnd('.', '!', ' ').equals("SILENT", ignoreCase = true)) {
+      return text
+    }
+    return when {
+      isBumpAlert -> "Obstacle ahead; move carefully."
+      cameraMotion.isMoving -> "Camera moving; reassessing nearby obstacles."
+      else -> "No new hazards detected; continue carefully."
+    }
   }
 
   private fun showToast(message: String) {
