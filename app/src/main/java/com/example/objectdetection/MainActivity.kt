@@ -2,6 +2,7 @@ package com.example.objectdetection
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Typeface
 import android.hardware.Sensor
@@ -9,6 +10,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
@@ -17,10 +19,12 @@ import android.view.GestureDetector
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -39,6 +43,21 @@ class MainActivity : AppCompatActivity() {
   private var cameraSource: CameraSource? = null
   private var isControlsExpanded = false
   private lateinit var ttsHelper: TtsHelper
+
+  private val speechSearchLauncher = registerForActivityResult(
+    ActivityResultContracts.StartActivityForResult()
+  ) { result ->
+    if (result.resultCode == RESULT_OK && result.data != null) {
+      val results = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+      val spokenText = results?.firstOrNull()?.trim()
+      if (!spokenText.isNullOrEmpty()) {
+        TargetSearchManager.targetObject = spokenText
+        val msg = "Looking for $spokenText. I will alert you when it appears."
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+        ttsHelper.speak(msg, override = true)
+      }
+    }
+  }
 
   private lateinit var gestureDetector: GestureDetectorCompat
   private var sensorManager: SensorManager? = null
@@ -176,6 +195,24 @@ class MainActivity : AppCompatActivity() {
       ttsHelper.speak(msg, override = true)
       view.announceForAccessibility(msg)
     }
+
+    binding.mapInspectorBtn.setOnClickListener { view ->
+      view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+      show3DMapInspectorDialog()
+    }
+
+    binding.mapSearchBtn.setOnClickListener { view ->
+      view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+      val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        putExtra(RecognizerIntent.EXTRA_PROMPT, "What object are you looking for?")
+      }
+      try {
+        speechSearchLauncher.launch(intent)
+      } catch (e: Exception) {
+        showTextObjectSearchDialog()
+      }
+    }
   }
 
   private fun setupBottomCardToggle() {
@@ -295,6 +332,7 @@ class MainActivity : AppCompatActivity() {
       val options = ObjectDetectorOptions.Builder()
         .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
         .enableMultipleObjects()
+        .enableClassification()
         .build()
 
       cameraSource?.setMachineLearningFrameProcessor(
@@ -442,6 +480,135 @@ class MainActivity : AppCompatActivity() {
       Toast.makeText(context, "Logs cleared", Toast.LENGTH_SHORT).show()
     }
 
+    builder.show()
+  }
+
+  private fun show3DMapInspectorDialog() {
+    val map = MappedEnvironmentHolder.latestMap
+    val context = this
+    val builder = AlertDialog.Builder(context)
+    builder.setTitle("3D Environment Map & Objects")
+
+    val scrollView = ScrollView(context)
+    val container = LinearLayout(context).apply {
+      orientation = LinearLayout.VERTICAL
+      setPadding(32, 24, 32, 24)
+    }
+
+    // Summary Card
+    val summaryCard = LinearLayout(context).apply {
+      orientation = LinearLayout.VERTICAL
+      setPadding(24, 20, 24, 20)
+      background = ContextCompat.getDrawable(context, R.drawable.quick_controls_btn_bg)
+      backgroundTintList = ContextCompat.getColorStateList(context, R.color.dark_card)
+      layoutParams = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+      ).apply { setMargins(0, 0, 0, 20) }
+    }
+
+    val headerText = TextView(context).apply {
+      text = "Spatial Tracking Summary"
+      setTextColor(ContextCompat.getColor(context, R.color.logo_cyan))
+      textSize = 16f
+      typeface = Typeface.DEFAULT_BOLD
+    }
+
+    val trackingModeStr = if (map.isArCoreTrackingActive) "Active (3D Spatial SLAM)" else "Camera Projection Fallback"
+    val summaryDetails = TextView(context).apply {
+      text = "Mode: $trackingModeStr\n" +
+             "Camera Pos: X=%.2fm, Y=%.2fm, Z=%.2fm\n".format(map.cameraPosition3D.x, map.cameraPosition3D.y, map.cameraPosition3D.z) +
+             "Point Cloud Landmarks: ${map.pointCloud3D.size} points\n" +
+             "Surface Planes: ${map.detectedPlanes.size} planes\n" +
+             "Tracked Objects: ${map.tracked3DObjects.size} objects"
+      setTextColor(ContextCompat.getColor(context, R.color.white))
+      textSize = 14f
+      setPadding(0, 8, 0, 0)
+    }
+
+    summaryCard.addView(headerText)
+    summaryCard.addView(summaryDetails)
+    container.addView(summaryCard)
+
+    // Objects Header
+    val objectsHeader = TextView(context).apply {
+      text = "Tracked Objects (${map.tracked3DObjects.size})"
+      setTextColor(ContextCompat.getColor(context, R.color.pastel_lavender))
+      textSize = 15f
+      typeface = Typeface.DEFAULT_BOLD
+      setPadding(0, 8, 0, 12)
+    }
+    container.addView(objectsHeader)
+
+    if (map.tracked3DObjects.isEmpty()) {
+      val emptyText = TextView(context).apply {
+        text = "No objects currently detected in 3D view."
+        setTextColor(ContextCompat.getColor(context, R.color.white))
+        textSize = 14f
+        alpha = 0.7f
+      }
+      container.addView(emptyText)
+    } else {
+      map.tracked3DObjects.forEachIndexed { idx, obj ->
+        val objCard = LinearLayout(context).apply {
+          orientation = LinearLayout.VERTICAL
+          setPadding(24, 20, 24, 20)
+          background = ContextCompat.getDrawable(context, R.drawable.quick_controls_btn_bg)
+          backgroundTintList = ContextCompat.getColorStateList(context, R.color.dark_card)
+          layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+          ).apply { setMargins(0, 0, 0, 16) }
+        }
+
+        val objTitle = TextView(context).apply {
+          text = "${idx + 1}. ${obj.label}"
+          setTextColor(ContextCompat.getColor(context, if (obj.isHazard) R.color.pastel_peach else R.color.pastel_green))
+          textSize = 15f
+          typeface = Typeface.DEFAULT_BOLD
+        }
+
+        val objDetails = TextView(context).apply {
+          text = "Distance: %.2f meters\n".format(obj.distanceMeters) +
+                 "Position (X, Y, Z): X=%.2fm, Y=%.2fm, Z=%.2fm\n".format(obj.position3D.x, obj.position3D.y, obj.position3D.z) +
+                 "Motion: ${obj.motionLabel} | Hazard: ${if (obj.isHazard) "⚠️ YES" else "No"}"
+          setTextColor(ContextCompat.getColor(context, R.color.white))
+          textSize = 13f
+          setPadding(0, 6, 0, 0)
+        }
+
+        objCard.addView(objTitle)
+        objCard.addView(objDetails)
+        container.addView(objCard)
+      }
+    }
+
+    scrollView.addView(container)
+    builder.setView(scrollView)
+    builder.setPositiveButton("Close", null)
+    builder.show()
+
+    ttsHelper.speak("Showing 3D environment map and tracked objects", override = true)
+  }
+
+  private fun showTextObjectSearchDialog() {
+    val builder = AlertDialog.Builder(this)
+    builder.setTitle("Find Object")
+    val input = EditText(this).apply {
+      hint = "e.g. chair, bottle, door"
+      setPadding(48, 32, 48, 32)
+    }
+    builder.setView(input)
+    builder.setPositiveButton("Search") { _, _ ->
+      val query = input.text.toString().trim()
+      if (query.isNotEmpty()) {
+        TargetSearchManager.targetObject = query
+        val msg = "Looking for $query. I will alert you when it appears."
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+        ttsHelper.speak(msg, override = true)
+      }
+    }
+    builder.setNegativeButton("Cancel", null)
     builder.show()
   }
 

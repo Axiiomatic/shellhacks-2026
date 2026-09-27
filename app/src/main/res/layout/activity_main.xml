@@ -249,6 +249,72 @@
                     </FrameLayout>
                 </LinearLayout>
 
+                <!-- Row 3: 3D Map & Tracked Objects Inspector Button -->
+                <LinearLayout
+                    android:id="@+id/map_inspector_btn"
+                    android:layout_width="match_parent"
+                    android:layout_height="90dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/quick_controls_btn_bg"
+                    android:backgroundTint="@color/logo_cyan"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="@string/cd_map_inspector">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/map_inspector_btn_text"
+                        android:textColor="@color/black"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <ImageView
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:src="@drawable/ic_ai"
+                        app:tint="@color/black"
+                        android:contentDescription="@null" />
+                </LinearLayout>
+
+                <!-- Row 4: Find Object Voice Search Button -->
+                <LinearLayout
+                    android:id="@+id/map_search_btn"
+                    android:layout_width="match_parent"
+                    android:layout_height="90dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/quick_controls_btn_bg"
+                    android:backgroundTint="@color/pastel_yellow"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="@string/cd_find_object">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/find_object_btn_text"
+                        android:textColor="@color/black"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <ImageView
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:src="@drawable/ic_volume_up"
+                        app:tint="@color/black"
+                        android:contentDescription="@null" />
+                </LinearLayout>
+
             </LinearLayout>
         </ScrollView>
 

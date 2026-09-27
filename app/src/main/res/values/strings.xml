@@ -34,4 +34,8 @@
     <string name="arrow_down">▼</string>
     <string name="quick_controls_collapsed">QUICK CONTROLS   ▲</string>
     <string name="quick_controls_expanded">QUICK CONTROLS   ▼</string>
+    <string name="map_inspector_btn_text">3D Map &amp; Objects</string>
+    <string name="cd_map_inspector">3D Map and Tracked Objects Inspector. Tap to view live 3D environment map and tracked objects.</string>
+    <string name="find_object_btn_text">Find Object (Voice)</string>
+    <string name="cd_find_object">Voice Object Search. Tap and speak an object name to search the 3D map or look out for it.</string>
 </resources>

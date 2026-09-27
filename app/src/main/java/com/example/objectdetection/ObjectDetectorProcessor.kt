@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.google.mlkit.vision.objects.DetectedObject
 import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.ObjectDetector
@@ -20,7 +22,10 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
   VisionProcessorBase<List<DetectedObject>>(context) {
 
   private val detector: ObjectDetector = ObjectDetection.getClient(options)
+  private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+  private var latestDetectedText: String = ""
   private val motionTracker = MotionTracker()
+  private val arEnvironmentMapper = ArEnvironmentMapper(context)
   private val vibratorHelper = VibratorHelper(context)
   private val audioAlertHelper = AudioAlertHelper(context)
   private val ttsHelper = TtsHelper(context)
@@ -35,12 +40,23 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
     } catch (e: IOException) {
       Log.e(TAG, "Exception thrown while trying to close object detector!", e)
     }
+    arEnvironmentMapper.close()
     audioAlertHelper.release()
     ttsHelper.release()
     geminiInferenceManager.release()
   }
 
   override fun detectInImage(image: InputImage): Task<List<DetectedObject>> {
+    textRecognizer.process(image)
+      .addOnSuccessListener { visionText ->
+        val text = visionText.text.trim()
+        if (text.isNotBlank()) {
+          latestDetectedText = text.replace("\n", " ")
+        }
+      }
+      .addOnFailureListener {
+        // ignore
+      }
     return detector.process(image)
   }
 
@@ -73,11 +89,22 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
         currGrayMat = grayMat
       )
 
+      val environment3DMap = arEnvironmentMapper.mapEnvironment(
+        detectedObjects = results,
+        trackInfoMap = trackInfoMap,
+        frameWidth = graphicOverlay.imageWidth,
+        frameHeight = graphicOverlay.imageHeight,
+        currGrayMat = grayMat,
+        detectedText = latestDetectedText
+      )
+      MappedEnvironmentHolder.latestMap = environment3DMap
+
       var rapidApproachDetected = false
       var hazardScreenNormX = 0.5f
       var maxHazardArea = -1.0f
       val frameKeyPoints = motionTracker.detectFrameKeyPoints(grayMat)
       graphicOverlay.add(KeyPointGraphic(graphicOverlay, frameKeyPoints, emptyList()))
+      graphicOverlay.add(Environment3DMapGraphic(graphicOverlay, environment3DMap))
       graphicOverlay.add(
         GeminiTimingGraphic(
           graphicOverlay,
@@ -118,65 +145,36 @@ class ObjectDetectorProcessor(private val context: Context, options: ObjectDetec
         }
       }
 
+      val target = TargetSearchManager.targetObject
+      if (target != null) {
+        val matchedObj = environment3DMap.tracked3DObjects.find { TargetSearchManager.matchesTarget(it.label) }
+        if (matchedObj != null) {
+          val now = System.currentTimeMillis()
+          if (now - TargetSearchManager.lastAlertTimeMs >= TargetSearchManager.ALERT_THROTTLE_MS) {
+            TargetSearchManager.lastAlertTimeMs = now
+            val announcement = "Found target $target! ${matchedObj.label}, %.2f meters away, ${matchedObj.toSpatialPromptString()}.".format(matchedObj.distanceMeters)
+
+            ttsHelper.speak(announcement, override = true)
+            val centerX = (matchedObj.boundingBox2D.left + matchedObj.boundingBox2D.right) / 2.0f
+            val rawNormX = centerX / safeWidth
+            val normX = if (graphicOverlay.isImageFlipped) 1.0f - rawNormX else rawNormX
+            audioAlertHelper.playAlertSound(normX)
+            vibratorHelper.vibrateRapidApproach()
+
+            // Trigger only once per search query
+            TargetSearchManager.clear()
+          }
+        }
+      }
+
       geminiInferenceManager.onFrameProcessed(
         frameData,
         frameMetadata,
         rapidApproachDetected,
-        buildGeminiSceneContext(results, trackInfoMap, graphicOverlay.imageWidth, graphicOverlay.imageHeight)
+        environment3DMap.buildGemini3DSceneContext()
       )
     } finally {
       grayMat?.release()
-    }
-  }
-
-  private fun buildGeminiSceneContext(
-    results: List<DetectedObject>,
-    trackInfoMap: Map<DetectedObject, ObjectTrackInfo>,
-    frameWidth: Int,
-    frameHeight: Int
-  ): String {
-    val safeWidth = maxOf(frameWidth, 1).toFloat()
-    val safeHeight = maxOf(frameHeight, 1).toFloat()
-    val objectLines = results.take(MAX_GEMINI_OBJECTS).mapIndexed { index, result ->
-      val box = result.boundingBox
-      val trackInfo = trackInfoMap[result]
-      val labels = result.labels.joinToString(", ") { label ->
-        "${label.text} ${(label.confidence * 100f).toInt()}%"
-      }.ifBlank { "unclassified" }
-      val centerX = ((box.left + box.right) / 2f / safeWidth).coerceIn(0f, 1f)
-      val centerY = ((box.top + box.bottom) / 2f / safeHeight).coerceIn(0f, 1f)
-      val width = ((box.right - box.left) / safeWidth).coerceIn(0f, 1f)
-      val height = ((box.bottom - box.top) / safeHeight).coerceIn(0f, 1f)
-      val motion = trackInfo?.motionLabel ?: "unknown motion"
-      val displacement = if (trackInfo == null) "unknown" else {
-        "dx=%.1fpx, dy=%.1fpx, speed=%.2f, scale=%.2f/s".format(
-          trackInfo.displacementX,
-          trackInfo.displacementY,
-          trackInfo.relativeSpeed,
-          trackInfo.relativeScaleGrowth
-        )
-      }
-      val isHazardObject = trackInfo?.isRapidApproaching == true || width > 0.4f || height > 0.4f
-      val hazardStatus = if (isHazardObject) "⚠️ HIGH HAZARD / COLLISION COURSE" else "normal"
-      String.format(
-        Locale.US,
-        "Object %d: %s; center=(%.2f,%.2f); size=(%.2f,%.2f); motion=%s; trajectory=%s; status=%s",
-        index + 1,
-        labels,
-        centerX,
-        centerY,
-        width,
-        height,
-        motion,
-        displacement,
-        hazardStatus
-      )
-    }
-
-    return if (objectLines.isEmpty()) {
-      "Scene context: no tracked objects detected."
-    } else {
-      "Scene context:\n${objectLines.joinToString("\n")}"
     }
   }
 
